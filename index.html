@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Sonar</title>
+  <meta name="description" content="Sonar: chats and calls with your Ripple account. Free, no ads. Made by Brayden.">
+  <meta name="theme-color" content="#04212B">
+  <meta property="og:site_name" content="Sonar">
+  <meta property="og:title" content="Sonar — chats and calls">
+  <meta property="og:description" content="Chat and call with your Ripple account, on Android and on the web. Free, no ads. Made by Brayden.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="icons/icon-512.png">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" sizes="64x64" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="calls.css">
+</head>
+<body>
+  <a class="skip" href="#main-pane">Skip to content</a>
+  <div id="app" aria-live="off"><div class="boot" aria-label="Loading Sonar"><svg viewBox="0 0 108 108" class="mark big" aria-hidden="true"><use href="#sonar-mark"/></svg></div></div>
+  <div id="call-layer" hidden></div>
+  <div id="modal" class="modal" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="drop" class="drop" hidden><div>Drop to send</div></div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#04303D"/><stop offset=".55" stop-color="#0A6F8C"/><stop offset="1" stop-color="#1BB3C9"/></linearGradient>
+      <linearGradient id="sw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".4"/></linearGradient>
+      <symbol id="sonar-mark" viewBox="0 0 108 108">
+        <rect width="108" height="108" rx="28" fill="url(#sg)"/>
+        <path d="M54,54L54,24A30,30 0 0 1 84,54Z" fill="url(#sw)"/>
+        <circle cx="54" cy="54" r="30" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="3"/>
+        <circle cx="54" cy="54" r="17" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="3.4"/>
+        <circle cx="54" cy="54" r="7" fill="#fff"/>
+        <circle cx="75.7" cy="42" r="3.2" fill="#7FF3FF"/>
+      </symbol>
+    </defs>
+  </svg>
+  <noscript><p style="padding:24px;font-family:system-ui">Sonar needs JavaScript to run.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
