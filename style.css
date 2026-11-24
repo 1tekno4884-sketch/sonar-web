@@ -456,3 +456,17 @@ button.linkish:hover { text-decoration: underline; }
   transform: translateX(-120%); animation: ownershine 3.6s linear infinite; }
 @keyframes ownershine { to { transform: translateX(120%); } }
 @media (prefers-reduced-motion: reduce) { .ownertag::after { animation: none; display: none; } }
+
+/* ── U2 custom ── Tidewrite rich text + Bubble Studio (web/js/custom.js) */
+.bubble .txt code { font-family: ui-monospace, "Courier New", monospace; font-size: .92em; background: color-mix(in srgb, currentColor 14%, transparent); border-radius: 5px; padding: 0 4px; }
+.bubble .txt .spoiler { background: color-mix(in srgb, currentColor 55%, transparent); color: transparent; border-radius: 4px; cursor: pointer; transition: color .2s, background .2s; }
+.bubble .txt .spoiler * { color: transparent !important; pointer-events: none; }
+.bubble .txt .spoiler.open { background: color-mix(in srgb, currentColor 10%, transparent); color: inherit; cursor: auto; }
+.bubble .txt .spoiler.open * { color: inherit !important; pointer-events: auto; }
+.u2-bubbles .msg:not(.mine) .bubble:not(.bare) { background: var(--u2-recv-bg, var(--surface2)); color: var(--u2-recv-fg, var(--text)); border-radius: var(--u2-recv-radius, 20px); }
+.u2-bubbles .msg.mine .bubble:not(.bare) { background: var(--u2-sent-bg, var(--vivid)); color: var(--u2-sent-fg, var(--on-vivid)); border-radius: var(--u2-sent-radius, 20px); }
+.u2-bubbles .bubble .txt { font-family: var(--u2-msg-font, inherit); }
+:root[data-u2sent="leaf"] .msg.mine .bubble:not(.bare) { border-radius: 26px 4px 26px 4px; }
+:root[data-u2recv="leaf"] .msg:not(.mine) .bubble:not(.bare) { border-radius: 4px 26px 4px 26px; }
+:root[data-u2sent="drop"] .msg.mine .bubble:not(.bare) { border-bottom-right-radius: 0; }
+:root[data-u2recv="drop"] .msg:not(.mine) .bubble:not(.bare) { border-bottom-left-radius: 0; }

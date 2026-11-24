@@ -9,6 +9,7 @@ import { buildShell, setTab, setDetail, ui } from "./layout.js";
 import { renderLanding, setOnSignedIn, signInModal } from "./auth.js";
 import { chatsTab, initChats, stopChats, adjacentChat, chatTitle, openChatById } from "./chats.js";
 import { peopleTab } from "./people.js";
+import { flairAvatar, flairName, ribbonsHtml } from "./identity.js";   // U2-identity
 import { settingsTab } from "./settingsui.js";
 import { callsTab, initCalls, stopCalls, joinByCode } from "./calls.js";
 
@@ -75,6 +76,7 @@ async function loadMe() {
   try {
     const j = await get("/v1/me");
     state.me = j.user; state.role = j.role; state.owner = !!j.owner;
+    state.access = j.access || null;   // U2-identity
   } catch (e) { if (e.status === 401) setToken(null); state.me = e.status === 401 ? null : state.me; if (e.status !== 401 && !state.me) throw e; }
 }
 
@@ -144,7 +146,7 @@ export function openSearch() {
     ]);
     if (my !== seq) return;
     const users = (people.users || []).slice(0, 8);
-    if (users.length) res.append(h("div", { class: "section-title" }, "People"), ...users.map((u) => row(avatar(u.avatar, u.displayName, "sm"), h("span", {}, u.displayName || u.username, ...badges(u.badges, { dev: false })), "@" + u.username, `#/u/${enc(u.username)}`)));
+    if (users.length) res.append(h("div", { class: "section-title" }, "People"), ...users.map((u) => row(flairAvatar(u, "sm"), h("span", {}, flairName(u, u.displayName || u.username), ...badges(u.badges, { dev: false }), ribbonsHtml(u, true)), "@" + u.username, `#/u/${enc(u.username)}`)));   // U2-identity
     const cs = items(chans).slice(0, 5);
     if (cs.length) res.append(h("div", { class: "section-title" }, "Channels"), ...cs.map((ch) => row(avatar(ch.photo, ch.name, "sm"), ch.name,
       `${ch.subscribed ? "Subscribed · " : ""}${ch.subscribers} subscriber${ch.subscribers === 1 ? "" : "s"}`, `#/channel/${enc(ch.id)}`)));

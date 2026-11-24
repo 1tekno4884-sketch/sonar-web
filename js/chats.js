@@ -5,6 +5,7 @@ import { h, icon, iconBtn, toast, errText, modal, closeModal, menu, confirmBox, 
 import { state, emit, on, myId, user, seedUser, userName } from "./state.js";
 import { getS, setS, chatPref, setChatPref, isMuted, nickname } from "./settings.js";
 import { onLine } from "./line.js";
+import { plainRich } from "./custom.js";   // U2-custom
 import { ui, setBadge, mainEmpty, backBtn } from "./layout.js";
 import { renderMessage, runInfo } from "./messages.js";
 import { createComposer } from "./composer.js";
@@ -12,6 +13,7 @@ import { openViewer } from "./media.js";
 import { mountWallpaper } from "./wallpaper.js";
 import { notify, setUnread, pingSound, askPermission, permission, canNotify } from "./notify.js";
 import { startCall } from "./calls.js";
+import { flairAvatar, flairName, ribbonsHtml } from "./identity.js";   // U2-identity
 import { isChannel, isChannelAdmin, chanMark, channelInfo, leaveChannel, fetchChannel, channelCached, subsText, channelWebLink, renderDiscover, renderChannelRoute, newChannelModal } from "./channels.js";
 
 // ------------------------------------------------------------------ helpers
@@ -31,7 +33,7 @@ export function chatTitle(c) {
 function chatAvatar(c, size = "") {
   if (isGroup(c) || isChannel(c)) return avatar(c.photo, chatTitle(c), size);
   const u = memberUser(c, others(c)[0]);
-  const a = avatar(u?.avatar, chatTitle(c), size);
+  const a = flairAvatar(u, size, avatar(u?.avatar, chatTitle(c), size));   // U2-identity
   if (u && u.showActivity !== false && u.lastActive && Date.now() - u.lastActive < 3 * 60_000) return h("span", { class: "online", "aria-label": "Active now" }, a);
   return a;
 }
@@ -172,7 +174,7 @@ function maybeNotify(c) {
   const mode = getS("notifications.preview");
   const from = names(c)(l.senderId);
   const title = isGroup(c) || isChannel(c) ? chatTitle(c) : from;
-  const body = isChannel(c) ? (mode === "Hidden" || mode === "Sender" ? "New post" : l.text || "New post") : mode === "Hidden" ? "New message" : mode === "Sender" ? (isGroup(c) ? `${from} sent a message` : "Sent you a message") : `${isGroup(c) ? from + ": " : ""}${l.text || "New message"}`;
+  const body = isChannel(c) ? (mode === "Hidden" || mode === "Sender" ? "New post" : l.text || "New post") : mode === "Hidden" ? "New message" : mode === "Sender" ? (isGroup(c) ? `${from} sent a message` : "Sent you a message") : `${isGroup(c) ? from + ": " : ""}${plainRich(l.text) || "New message"}`;   // U2-custom
   if (document.hidden || !document.hasFocus()) notify(title, body, { tag: "chat-" + c.id, kind: "message", onclick: () => (location.hash = `#/chat/${enc(c.id)}`) });
   if (!document.hidden) pingSound();
 }
@@ -234,7 +236,7 @@ function chatRow(c) {
   const showPv = getS("chat.showPreviews") !== false;
   const ch = isChannel(c);
   const pv = typing.length ? h("span", { class: "pv typing" }, isGroup(c) ? `${names(c)(typing[0])} is typing…` : "typing…")
-    : h("span", { class: "pv" }, !l ? (isRequest(c) ? "Wants to message you" : "No messages yet") : !showPv ? (unread ? "New message" : "") : `${l.senderId === myId() ? "You: " : ch ? "" : isGroup(c) ? names(c)(l.senderId).split(" ")[0] + ": " : ""}${l.text || ""}`);
+    : h("span", { class: "pv" }, !l ? (isRequest(c) ? "Wants to message you" : "No messages yet") : !showPv ? (unread ? "New message" : "") : `${l.senderId === myId() ? "You: " : ch ? "" : isGroup(c) ? names(c)(l.senderId).split(" ")[0] + ": " : ""}${plainRich(l.text || "")}`);   // U2-custom: no raw markers
   const count = h("span", { class: "count" + (isMuted(c.id) ? " muted" : ""), hidden: !unread });
   if (unread) { count.textContent = "•"; unreadCount(c).then((n) => { count.textContent = n > 99 ? "99+" : String(n); }); }
   const u = !isGroup(c) && !ch ? memberUser(c, others(c)[0]) : null;
@@ -243,7 +245,7 @@ function chatRow(c) {
     "aria-label": `${chatTitle(c)}${ch ? ", channel" : ""}${unread ? ", unread" : ""}${p.pinned ? ", pinned" : ""}${isMuted(c.id) ? ", muted" : ""}` },
     chatAvatar(c),
     h("div", { class: "body" },
-      h("div", { class: "l1" }, h("span", { class: "name" }, h("span", { class: "t" }, chatTitle(c)), u ? badges(u.badges, { dev: false }) : null, ch ? chanMark() : null),
+      h("div", { class: "l1" }, h("span", { class: "name" }, h("span", { class: "t" }, u ? flairName(u, chatTitle(c)) : chatTitle(c)), u ? badges(u.badges, { dev: false }) : null, u ? ribbonsHtml(u, true) : null, ch ? chanMark() : null),   // U2-identity
         h("span", { class: "flags" }, p.pinned ? icon("pin") : null, isMuted(c.id) ? icon("bellOff") : null),
         h("span", { class: "time" }, listTime(l?.at || c.updatedAt))),
       h("div", { class: "l2" }, pv, count)),
@@ -344,9 +346,9 @@ export function pickPeople({ title, multi, group = false, then, okLabel }) {
     res.replaceChildren(...(list.length ? list.map((u) => {
       if (multi) {
         const cb = h("input", { type: "checkbox", checked: picked.has(u.id), onchange: () => { if (cb.checked) { if (picked.size >= 49) { cb.checked = false; return toast("Groups can have up to 50 people"); } picked.set(u.id, u); } else picked.delete(u.id); paintChosen(); } });
-        return h("label", { role: "listitem" }, cb, avatar(u.avatar, u.displayName, "sm"), h("span", { class: "name" }, u.displayName || u.username, badges(u.badges, { dev: false })), h("span", { class: "meta" }, "@" + u.username));
+        return h("label", { role: "listitem" }, cb, flairAvatar(u, "sm"), h("span", { class: "name" }, flairName(u, u.displayName || u.username), badges(u.badges, { dev: false }), ribbonsHtml(u, true)), h("span", { class: "meta" }, "@" + u.username));   // U2-identity
       }
-      return h("button", { class: "rowbtn", role: "listitem", onclick: () => { closeModal(); then([u]); } }, avatar(u.avatar, u.displayName, "sm"), h("div", { class: "body" }, h("div", { class: "l1" }, h("span", { class: "name" }, u.displayName || u.username, badges(u.badges, { dev: false }))), h("div", { class: "l2" }, "@" + u.username)));
+      return h("button", { class: "rowbtn", role: "listitem", onclick: () => { closeModal(); then([u]); } }, flairAvatar(u, "sm"), h("div", { class: "body" }, h("div", { class: "l1" }, h("span", { class: "name" }, flairName(u, u.displayName || u.username), badges(u.badges, { dev: false }), ribbonsHtml(u, true))), h("div", { class: "l2" }, "@" + u.username)));   // U2-identity
     }) : [h("div", { class: "meta", style: "padding:8px" }, q.value.trim() ? "Nobody found" : "Type a name or @username")]));
   };
   let seq = 0;
@@ -475,7 +477,7 @@ function groupInfo(c) {
   const admin = (c.admins || []).includes(myId());
   const list = h("div", { class: "picklist" });
   const paintMembers = () => list.replaceChildren(...(c.memberUsers || []).map((u) => h("div", { class: "row", style: "padding:6px" },
-    avatar(u.avatar, u.name, "sm"), h("a", { class: "name grow", href: `#/u/${enc(u.username)}`, onclick: () => closeModal() }, u.name || u.username, badges(u.badges, { dev: false })),
+    flairAvatar(u, "sm", avatar(u.avatar, u.name, "sm")), h("a", { class: "name grow", href: `#/u/${enc(u.username)}`, onclick: () => closeModal() }, flairName(u, u.name || u.username), badges(u.badges, { dev: false }), ribbonsHtml(u, true)),   // U2-identity
     (c.admins || []).includes(u.id) ? h("span", { class: "chip" }, "Admin") : null,
     admin && u.id !== myId() ? iconBtn("more", `Options for ${u.name}`, (e) => menu(e.currentTarget, [
       { label: (c.admins || []).includes(u.id) ? "Remove admin" : "Make admin", onclick: async () => { try { Object.assign(c, await patch(`/v1/chats/${enc(c.id)}`, { admin: { uid: u.id, on: !(c.admins || []).includes(u.id) } })); paintMembers(); } catch (e2) { toast(errText(e2)); } } },
@@ -600,7 +602,7 @@ async function renderConversation(el, id) {
     status.textContent = typing.length ? (isGroup(c) ? `${typing.map(names(c)).join(", ")} ${typing.length > 1 ? "are" : "is"} typing…` : "typing…")
       : channel ? `Channel${chInfo ? ` · ${subsText(chInfo.subscribers)}` : ""}`
       : isGroup(c) ? `${(c.members || []).length} members` : (o && o.showActivity !== false && lastSeen(o.lastActive)) || (o ? "@" + o.username : "");
-    who.replaceChildren(chatAvatar(c, "sm"), h("div", { style: "min-width:0" }, h("div", { class: "t" }, chatTitle(c), " ", o ? badges(o.badges, { dev: false }) : null), status));
+    who.replaceChildren(chatAvatar(c, "sm"), h("div", { style: "min-width:0" }, h("div", { class: "t" }, o ? flairName(o, chatTitle(c)) : chatTitle(c), " ", o ? badges(o.badges, { dev: false }) : null, o ? ribbonsHtml(o, true) : null), status));   // U2-identity
     conv.setAttribute("aria-label", convLabel());
   };
 
@@ -629,7 +631,7 @@ async function renderConversation(el, id) {
     pinI = pinI % pins.length;
     const m = bucket(id).byId.get(pins[pinI]);
     pinbar.replaceChildren(icon("pin"), h("button", { class: "txt", "aria-label": "Jump to pinned message", onclick: () => { jump(m.id); pinI = (pinI + 1) % pins.length; paintPins(); } },
-      h("span", { class: "pk" }, `Pinned message${pins.length > 1 ? ` ${pinI + 1} of ${pins.length}` : ""}`), m.deleted ? "Deleted message" : m.text || m.type));
+      h("span", { class: "pk" }, `Pinned message${pins.length > 1 ? ` ${pinI + 1} of ${pins.length}` : ""}`), m.deleted ? "Deleted message" : plainRich(m.text) || m.type));   // U2-custom
   };
 
   // messages

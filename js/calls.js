@@ -10,6 +10,7 @@ import { state, user, seedUser, userName, emit, on } from "./state.js";
 import { onLine } from "./line.js";
 import { notify, startRingtone, startDialtone, stopRingtone } from "./notify.js";
 import { mainEmpty, backBtn, setBadge } from "./layout.js";
+import { flairName } from "./identity.js";   // U2-identity
 
 const PRIVACY_LINE = "Calls are peer-to-peer and encrypted in transit (DTLS-SRTP)";
 const DEFAULT_ICE = [{ urls: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"] }];
@@ -779,7 +780,7 @@ function showRinging(call, from) {
   const accept = (withVideo) => { const r = R; dismissRinging(null, true); acceptCall(r.call, withVideo, r.queue); };
   const card = h("div", { class: "call-ring", role: "alertdialog", "aria-modal": "true", "aria-label": `Incoming ${video ? "video" : "voice"} call from ${name}` },
     h("div", { class: "call-ping" }, h("span"), h("span"), h("span"), h("div", { class: "call-av" }, avatar(from?.avatar, name, "big"))),
-    h("h2", { class: "name" }, name, ...badges(from?.badges || {}, { dev: false })),
+    h("h2", { class: "name" }, flairName(from, name), ...badges(from?.badges || {}, { dev: false })),   // U2-identity
     from?.username ? h("div", { class: "meta" }, "@" + from.username) : null,
     h("div", { class: "ring-kind" }, icon(video ? "video" : "phone"), `Incoming ${group ? "group " : ""}${video ? "video" : "voice"} call`),
     h("div", { class: "ring-actions" },
@@ -877,7 +878,8 @@ function partyLabel(c, nameEl, avEl, big = false) {
     avEl.replaceChildren(chat?.photo ? avatar(chat.photo, chat.name, big ? "big" : "") : avatar(null, chat?.name || "G", big ? "big" : ""));
   } else {
     user(others[0] || c.caller).then((u) => {
-      nameEl.replaceChildren(h("span", { class: "t" }, userName(u)), ...badges(u?.badges, { dev: false, hidden: u?.sonar?.hiddenBadges || [] }));
+      nameEl.replaceChildren(h("span", { class: "t" }, flairName(u, userName(u))), ...badges(   // U2-identity
+        u?.badges, { dev: false, hidden: u?.sonar?.hiddenBadges || [] }));
       avEl.replaceChildren(avatar(u?.avatar, userName(u), big ? "big" : ""));
     });
   }

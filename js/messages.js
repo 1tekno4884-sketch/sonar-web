@@ -4,6 +4,8 @@ import { mediaUrl, safeHref, safeKey, get } from "./api.js";
 import { getS } from "./settings.js";
 import { voicePlayer } from "./media.js";
 import { RIPPLE_WEB_URL } from "../config.js";
+import { richText } from "./custom.js";   // U2-custom: Tidewrite rich text
+import { flairAvatar, flairName, ribbonsHtml, hasOwnerBubble } from "./identity.js";   // U2-identity
 
 const GAMES = { ttt: "Tic-tac-toe", c4: "Connect four", word: "Word guess", rps: "Rock paper scissors", trivia: "Trivia duel" };
 const HIDE_TEXT = { sticker: true, poll: true, game: true, ping: true, call: true };
@@ -27,7 +29,7 @@ function postCard(id) {
     const a = p.author || {};
     const m = (p.media || []).find((x) => x.b === "pub" && safeKey(x.thumb || x.key));
     box.replaceChildren(
-      h("div", { class: "ph" }, avatar(a.avatar, a.name, "xs"), h("b", {}, a.name || a.username || "Someone"), h("span", { class: "meta" }, "@" + (a.username || ""))),
+      h("div", { class: "ph" }, flairAvatar(a, "xs", avatar(a.avatar, a.name, "xs")), h("b", {}, flairName(a, a.name || a.username || "Someone")), h("span", { class: "meta" }, "@" + (a.username || ""))),   // U2-identity
       m ? h("img", { src: mediaUrl(m.thumb || m.key, "pub"), alt: m.alt || "", loading: "lazy" }) : null,
       (p.title || p.text || p.body) ? h("div", { class: "pt" }, [p.title, p.text || p.body].filter(Boolean).join(" — ")) : null,
       h("div", { class: "open" }, "Open in Ripple ↗"));
@@ -139,7 +141,7 @@ function content(m, ctx) {
   const showText = text && !HIDE_TEXT[t] && !(FALLBACKS.has(text) && t !== "text") && !(t === "file" && x.file && text === `📎 ${x.file.name}`);
   if (showText) {
     const big = t === "text" && getS("chat.bigEmoji") !== false && bigEmojiCount(text);
-    const el = h("div", { class: "txt" }, rich(text, { highlight: ctx.highlight }));
+    const el = h("div", { class: "txt" }, richText(text, rich, { highlight: ctx.highlight }));   // U2-custom
     out.push(el);
     if (big) out.big = true;
   }
@@ -161,6 +163,7 @@ export function renderMessage(m, ctx, run = { first: true, last: true }) {
   const parts = content(m, ctx);
   const bare = !m.deleted && ((m.type === "sticker" && !m.text?.trim()) || parts.big || (["photo", "video", "gif"].includes(m.type) && !m.text && !m.replyTo && !x.fwd));
   const bubble = h("div", { class: "bubble" + (m.deleted ? " deleted" : "") + (parts.big ? " big-emoji" : "") + (m.type === "sticker" || parts.big ? " bare" : "") });
+  if (hasOwnerBubble(ctx.members.get(m.senderId))) bubble.classList.add("owner-bubble");   // U2-identity: sender's flair.ownerBubble (memberUsers)
   if (x.fwd) bubble.append(h("div", { class: "fwd" }, icon("forward"), "Forwarded"));
   if (m.replyTo?.id) {
     const q = ctx.byId.get(m.replyTo.id);
@@ -199,11 +202,11 @@ export function renderMessage(m, ctx, run = { first: true, last: true }) {
   const showAv = ctx.isGroup && !mine;
   const u = ctx.members.get(m.senderId);
   const col = h("div", { class: "col" },
-    showAv && run.first ? h("div", { class: "sender" }, ctx.names(m.senderId)) : null,
+    showAv && run.first ? h("div", { class: "sender" }, flairName(u, ctx.names(m.senderId)), ribbonsHtml(u, true)) : null,   // U2-identity
     bubble, reactRow);
   const el = h("div", { class: `msg${mine ? " mine" : ""}${run.first ? " first" : ""}${run.last ? " last" : ""}${m._pending ? " pending" : ""}${m._failed ? " failed" : ""}`,
     id: "m-" + m.id, "data-id": m.id, tabindex: "-1" },
-    showAv ? h("div", { class: "av" }, run.last ? h("a", { href: u?.username ? `#/u/${enc(u.username)}` : "#", "aria-label": ctx.names(m.senderId) }, avatar(u?.avatar, ctx.names(m.senderId), "sm")) : null) : null,
+    showAv ? h("div", { class: "av" }, run.last ? h("a", { href: u?.username ? `#/u/${enc(u.username)}` : "#", "aria-label": ctx.names(m.senderId) }, flairAvatar(u, "sm", avatar(u?.avatar, ctx.names(m.senderId), "sm"))) : null) : null,   // U2-identity
     col);
   if (!m.deleted && !m._pending && m.type !== "call") {
     const tools = h("div", { class: "tools" },

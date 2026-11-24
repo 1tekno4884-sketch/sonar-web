@@ -8,6 +8,7 @@ import { h, icon, iconBtn, toast, errText, modal, closeModal, confirmBox, avatar
 import { state, emit, myId } from "./state.js";
 import { mainEmpty, backBtn } from "./layout.js";
 import { prepareImage } from "./media.js";
+import { flairAvatar, flairName } from "./identity.js";   // U2-identity
 import { loadChats, markLocalRead } from "./chats.js";
 
 export const isChannel = (c) => c?.type === "channel";
@@ -158,7 +159,7 @@ export async function renderChannelRoute(el, id, openConv) {
       h("h1", {}, ch.name),
       h("div", { class: "meta" }, chanMark(true), " · ", subsText(ch.subscribers)),
       ch.description ? h("p", { class: "bio" }, ch.description) : null,
-      o ? h("div", { class: "meta by" }, "By ", h("a", { href: `#/u/${enc(o.username)}` }, avatar(o.avatar, o.name || o.username, "xs"), h("span", {}, o.name || o.username), badges(o.badges, { dev: false }))) : null,
+      o ? h("div", { class: "meta by" }, "By ", h("a", { href: `#/u/${enc(o.username)}` }, flairAvatar(o, "xs", avatar(o.avatar, o.name || o.username, "xs")), h("span", {}, flairName(o, o.name || o.username)), badges(o.badges, { dev: false }))) : null,
       h("div", { class: "actions" }, sub, h("button", { type: "button", class: "tonal", onclick: () => copy(channelWebLink(id)) }, icon("link"), "Copy link")),
       h("p", { class: "meta" }, "Only the channel's admins post here. Subscribers can read and react."))));
   setTimeout(() => sub.focus(), 50);
@@ -233,7 +234,7 @@ export function channelInfo(c0) {
   const paintMeta = (ch) => {
     count.textContent = subsText(ch.subscribers);
     const o = ch.owner;
-    by.replaceChildren(o ? ["By ", h("a", { href: `#/u/${enc(o.username)}`, onclick: () => closeModal() }, avatar(o.avatar, o.name || o.username, "xs"), h("span", {}, o.name || o.username), badges(o.badges, { dev: false }))] : []);
+    by.replaceChildren(o ? ["By ", h("a", { href: `#/u/${enc(o.username)}`, onclick: () => closeModal() }, flairAvatar(o, "xs", avatar(o.avatar, o.name || o.username, "xs")), h("span", {}, flairName(o, o.name || o.username)), badges(o.badges, { dev: false }))] : []);
   };
   if (channelCached(id)) paintMeta(channelCached(id));
   fetchChannel(id).then(paintMeta, () => {});

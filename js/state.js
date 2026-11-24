@@ -6,6 +6,7 @@ export const state = {
   me: null,            // public User JSON (+ private fields from /v1/me)
   role: null,
   owner: false,
+  access: null,        // U2-identity: {dev, owner, admin} from /v1/me — feature access (badges.dev is display only)
   config: null,
   chats: new Map(),    // id → Chat JSON
   chatsLoaded: false,
@@ -38,7 +39,8 @@ export async function user(uid, fresh = false) {
 export function seedUser(u) {
   if (!u?.id) return;
   const cur = state.users.get(u.id);
-  if (!cur) state.users.set(u.id, { id: u.id, username: u.username, displayName: u.name ?? u.displayName, avatar: u.avatar, badges: u.badges || {}, lastActive: u.lastActive, showActivity: u.showActivity, _partial: true });
+  if (!cur) state.users.set(u.id, { id: u.id, username: u.username, displayName: u.name ?? u.displayName, avatar: u.avatar, badges: u.badges || {}, lastActive: u.lastActive, showActivity: u.showActivity, _partial: true,
+    ribbons: u.ribbons, flair: u.flair });   // U2-identity: banners + flair ride along on snapshots when set
 }
 export const userName = (u) => u?.displayName || u?.name || u?.username || "Someone";
 

@@ -1,0 +1,132 @@
+/* U2-identity: role banners ("ribbons"), name flair, avatar effects, animated profile pictures and the owner bubble.
+   CSS + gradients only (no images or fonts). Avatar effects only animate on `.run` (set by js/identity.js for at most
+   a handful of on-screen avatars); nothing animates with reduced motion. */
+
+/* ---------------------------------------------------------------- banners */
+.ribbons { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; vertical-align: middle; min-width: 0; }
+.ribbons.full { display: flex; margin: 6px 0 2px; }
+.ribbons.compact { flex-wrap: nowrap; flex: 0 1 auto; overflow: hidden; }
+.ribbon { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 4px; max-width: 100%;
+  padding: 2px 9px 2px 6px; border-radius: 999px; font: 700 11px/16px Inter, system-ui, sans-serif; letter-spacing: .01em; white-space: nowrap;
+  background: linear-gradient(90deg, var(--rb1), var(--rb2)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); -webkit-text-fill-color: currentColor; }
+.ribbon .rb-ic { width: 12px; height: 12px; flex: none; }
+.ribbon .rb-t { overflow: hidden; text-overflow: ellipsis; }
+.ribbons.compact .ribbon { font-size: 10px; line-height: 14px; padding: 1px 7px 1px 5px; max-width: 11em; }
+.ribbons.compact .rb-ic { width: 11px; height: 11px; }
+.ribbon.rb-shimmer::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.5) 50%, transparent 70%); transform: translateX(-120%); animation: rbShine 3.2s linear infinite; }
+.ribbon.rb-pulse { animation: rbPulse 2.4s ease-in-out infinite; }
+.ribbon.rb-wave { background: linear-gradient(90deg, var(--rb1), var(--rb2), var(--rb1)) 0 0 / 200% 100%; animation: rbWave 3.2s linear infinite; }
+.msg .sender .ribbons, .conv-head .who .t .ribbons { margin-left: 6px; }
+.msg .sender .ribbons { vertical-align: -2px; }
+@keyframes rbShine { to { transform: translateX(120%); } }
+@keyframes rbPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.04); opacity: .84; } }
+@keyframes rbWave { to { background-position: 200% 0; } }
+
+/* ---------------------------------------------------------------- names */
+.fname.grad { background-image: linear-gradient(90deg, var(--n1, var(--text)), var(--n2, var(--n1, var(--text))));
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+  padding-right: .12em; }   /* room for italic / script overhangs (background-clip:text clips to the box) */
+.fname.nf-shimmer { background-image: linear-gradient(110deg, transparent 38%, rgba(255,255,255,.85) 50%, transparent 62%),
+  linear-gradient(90deg, var(--n1, var(--text)), var(--n2, var(--n1, var(--text))));
+  background-size: 250% 100%, 100% 100%; background-repeat: no-repeat; animation: nfShimmer 3.4s linear infinite; }
+.fname.nf-tide { background-image: linear-gradient(90deg, #1E6BFF, #3FD8FF 22%, #BFF4FF 32%, #3FD8FF 42%, #1E6BFF 58%, #2F8CFF 78%, #1E6BFF);
+  background-size: 200% 100%; background-repeat: repeat-x; animation: nfTide 4.5s linear infinite; }
+@keyframes nfShimmer { from { background-position: 100% 0, 0 0; } to { background-position: 0% 0, 0 0; } }
+@keyframes nfTide { from { background-position: 0 0; } to { background-position: 200% 0; } }
+.fname.ff-serif { font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif; }
+.fname.ff-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; letter-spacing: -.01em; }
+.fname.ff-cursive { font-family: "Segoe Script", "Snell Roundhand", "Apple Chancery", "Brush Script MT", cursive; }
+.fname.ff-rounded { font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Varela Round", Nunito, system-ui, sans-serif; }
+.fname.ff-condensed { font-family: "Roboto Condensed", "Arial Narrow", "Liberation Sans Narrow", sans-serif; font-stretch: condensed; letter-spacing: -.01em; }
+.fname.ff-wide { font-stretch: expanded; letter-spacing: .08em; }
+
+/* ---------------------------------------------------------------- avatars */
+.fav { position: relative; display: inline-grid; flex: none; vertical-align: middle; isolation: isolate; border-radius: 50%; --fx: #4FC3FF; }
+.fav > .avatar { grid-area: 1 / 1; margin: 0; }
+.fav > .fav-layer { position: relative; z-index: 1; background: transparent; }
+.profile .body .fav > .avatar.big { margin: 0; }
+.profile .body .fav-big { margin-top: -52px; }
+.fav.fx::before, .fav.fx::after { content: ""; position: absolute; pointer-events: none; border-radius: 50%; }
+.fav.fx::before { z-index: -1; }
+.fav.fx::after { z-index: 2; }
+.fav.fx:not(.run)::before, .fav.fx:not(.run)::after { animation-play-state: paused !important; }
+
+.fav.fx-glow::before { inset: -18%; background: radial-gradient(closest-side, var(--fx) 62%, transparent); filter: blur(2px);
+  animation: fxBreathe 2.8s ease-in-out infinite alternate; }
+
+.fav.fx-fire { --fx: #FF6A1A; }
+.fav.fx-fire::before { inset: -26% -14% -6%; border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%;
+  background: radial-gradient(closest-side at 50% 62%, #FFE27A 58%, var(--fx) 76%, transparent); filter: blur(1.5px);
+  transform-origin: 50% 85%; animation: fxFlame .7s ease-in-out infinite alternate; }
+.fav.fx-fire::after { z-index: -1; inset: -36% 12% 88%; border-radius: 0;
+  background: radial-gradient(circle at 28% 80%, #FFD54A 0 1.5px, transparent 2.5px), radial-gradient(circle at 70% 55%, var(--fx) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 50% 20%, #FFE27A 0 1px, transparent 2px);
+  animation: fxEmber 1.6s ease-out -.5s infinite; }
+
+.fav.fx-sparkles { --fx: #FFD54A; }
+.fav.fx-sparkles::before { inset: -10%; background: radial-gradient(closest-side, color-mix(in srgb, var(--fx) 55%, transparent) 72%, transparent); }
+.fav.fx-sparkles::after { inset: -18%; border-radius: 0;
+  background: radial-gradient(circle at 10% 22%, #fff 0 1.2px, transparent 2.4px), radial-gradient(circle at 90% 12%, var(--fx) 0 1.8px, transparent 3px),
+    radial-gradient(circle at 94% 78%, #fff 0 1.2px, transparent 2.4px), radial-gradient(circle at 6% 84%, var(--fx) 0 1.6px, transparent 2.8px),
+    radial-gradient(circle at 52% 0%, #fff 0 1px, transparent 2px);
+  animation: fxTwinkle 1.6s ease-in-out infinite alternate; }
+
+.fav.fx-lightning { --fx: #FFE066; }
+.fav.fx-lightning::before { inset: -12%;
+  background: conic-gradient(transparent 0 8%, var(--fx) 9% 11%, transparent 12% 40%, #fff 41% 42%, var(--fx) 43% 45%, transparent 46% 70%, var(--fx) 71% 73%, transparent 74%);
+  -webkit-mask: radial-gradient(closest-side, transparent 76%, #000 78% 96%, transparent); mask: radial-gradient(closest-side, transparent 76%, #000 78% 96%, transparent);
+  animation: fxZap 2.4s steps(1, end) infinite; }
+.fav.fx-lightning::after { z-index: -2; inset: -6%; background: radial-gradient(closest-side, color-mix(in srgb, var(--fx) 45%, transparent) 80%, transparent); }
+
+.fav.fx-bubbles { --fx: #7FE0FF; }
+.fav.fx-bubbles::before { inset: -6%; background: radial-gradient(closest-side, color-mix(in srgb, var(--fx) 40%, transparent) 82%, transparent); }
+.fav.fx-bubbles::after { inset: -10% -16% 20%; border-radius: 0;
+  background: radial-gradient(circle at 8% 70%, transparent 0 2.2px, var(--fx) 2.6px 3.3px, transparent 3.8px),
+    radial-gradient(circle at 92% 55%, transparent 0 1.6px, var(--fx) 2px 2.6px, transparent 3px),
+    radial-gradient(circle at 85% 15%, transparent 0 2.6px, color-mix(in srgb, var(--fx) 80%, #fff) 3px 3.7px, transparent 4.2px),
+    radial-gradient(circle at 14% 20%, transparent 0 1.4px, var(--fx) 1.8px 2.3px, transparent 2.8px);
+  animation: fxRise 3s ease-in-out -1.1s infinite; }
+
+.fav.fx-aurora { --fx: #3CE0B0; }
+.fav.fx-aurora::before { inset: -16%; background: conic-gradient(var(--fx), #7C4DFF, #00B0FF, #00E5A8, var(--fx));
+  -webkit-mask: radial-gradient(closest-side, transparent 60%, #000 74%, transparent); mask: radial-gradient(closest-side, transparent 60%, #000 74%, transparent);
+  filter: blur(3px); opacity: .9; animation: fxSpin 7s linear infinite; }
+
+/* the owner's crest aura (owner-only on the server) */
+.fav.fx-crest::before { inset: -13%;
+  background: conic-gradient(#071D4F, #1E6BFF 25%, #3FD8FF 40%, #fff 46%, #3FD8FF 52%, #1E6BFF 70%, #071D4F);
+  -webkit-mask: radial-gradient(closest-side, transparent 74%, #000 77% 94%, transparent); mask: radial-gradient(closest-side, transparent 74%, #000 77% 94%, transparent);
+  animation: fxSpin 5s linear infinite; }
+.fav.fx-crest::after { z-index: -2; inset: -22%; background: radial-gradient(closest-side, rgba(30,107,255,.55) 60%, rgba(63,216,255,.25) 78%, transparent);
+  animation: fxBreathe 3.2s ease-in-out infinite alternate; }
+
+@keyframes fxBreathe { from { transform: scale(.94); opacity: .5; } to { transform: scale(1.04); opacity: .9; } }
+@keyframes fxFlame { from { transform: scale(1, .96) skewX(-2deg); opacity: .85; } to { transform: scale(1.03, 1.06) skewX(2deg); opacity: 1; } }
+@keyframes fxEmber { from { transform: translateY(40%); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(-30%); opacity: 0; } }
+@keyframes fxTwinkle { from { opacity: .25; transform: scale(.97) rotate(-4deg); } to { opacity: 1; transform: scale(1.03) rotate(4deg); } }
+@keyframes fxZap { 0% { transform: rotate(0); opacity: 1; } 8% { opacity: .2; } 12% { transform: rotate(40deg); opacity: 1; } 40% { transform: rotate(130deg); opacity: .6; }
+  44% { transform: rotate(200deg); opacity: 1; } 70% { transform: rotate(250deg); opacity: .3; } 74% { transform: rotate(310deg); opacity: 1; } 100% { transform: rotate(360deg); } }
+@keyframes fxRise { 0% { transform: translateY(18%); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-18%); opacity: 0; } }
+@keyframes fxSpin { to { transform: rotate(360deg); } }
+
+/* ---------------------------------------------------------------- owner bubble (deep navy → blue, faint crest shimmer on the edge) */
+:root .msg .bubble.owner-bubble:not(.bare) { background: linear-gradient(135deg, #071D4F 0%, #0B2F86 55%, #1E6BFF 100%) !important; color: #fff !important;
+  border: 0 !important; backdrop-filter: none !important; box-shadow: 0 2px 10px rgba(7,29,79,.35); }
+.msg .bubble.owner-bubble:not(.bare) a { color: #BFEFFF; text-decoration: underline; }
+.msg .bubble.owner-bubble:not(.bare) .foot .seen { color: #3FD8FF; }
+.msg .bubble.owner-bubble:not(.bare)::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; opacity: .7;
+  background: linear-gradient(110deg, transparent 30%, rgba(63,216,255,.95) 45%, rgba(255,255,255,.9) 50%, rgba(63,216,255,.95) 55%, transparent 70%) 0 0 / 300% 100% no-repeat,
+    linear-gradient(rgba(63,216,255,.28), rgba(63,216,255,.28));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: obEdge 5s linear infinite; }
+@keyframes obEdge { from { background-position: 100% 0, 0 0; } to { background-position: 0 0, 0 0; } }
+
+/* ---------------------------------------------------------------- reduced motion: everything still */
+@media (prefers-reduced-motion: reduce) {
+  .ribbon, .ribbon::after, .fname, .fav::before, .fav::after, .owner-bubble::before { animation: none !important; }
+  .ribbon.rb-shimmer::after { display: none; }
+}
+:root.reduce-motion .ribbon, :root.reduce-motion .ribbon::after, :root.reduce-motion .fname, :root.reduce-motion .fav::before,
+:root.reduce-motion .fav::after, :root.reduce-motion .owner-bubble::before { animation: none !important; }
+:root.reduce-motion .ribbon.rb-shimmer::after { display: none; }

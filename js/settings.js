@@ -4,6 +4,7 @@
 // Plus: theme (mode, accent preset, bubble style, text size) applied as CSS variables, and per-chat drafts.
 import { get, put } from "./api.js";
 import { emit, state } from "./state.js";
+import { applyBubbleStyle } from "./custom.js";   // U2-custom: Bubble Studio
 
 let blob = {};
 let pushTimer = null, lastPull = 0;
@@ -204,6 +205,7 @@ export function applyTheme() {
   r.setProperty("--ui-scale", String(Math.min(1.4, Math.max(0.8, Number(getS("appearance.textScale")) || 1))));
   root.classList.toggle("reduce-motion", !!getS("a11y.reduceMotion") || ["Reduced", "Off"].includes(getS("appearance.motion")));
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", p.dark ? p.bg : p.vivid);
+  applyBubbleStyle(getS("custom.style"));   // U2-custom
 }
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { applyTheme(); emit("settings"); });
 setInterval(() => { if (getS("appearance.theme.mode") === "Scheduled") applyTheme(); }, 60_000);

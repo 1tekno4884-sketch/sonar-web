@@ -1,6 +1,7 @@
 // App shell: navigation rail (bottom bar on phones) · list pane · main pane. Two panes on desktop, one on mobile.
 import { h, icon, mark, avatar } from "./dom.js";
 import { state } from "./state.js";
+import { flairAvatar } from "./identity.js";   // U2-identity
 
 export const ui = { app: null, list: null, main: null, rail: null, tabs: {} };
 export const TABS = [["chats", "Chats", "chat"], ["calls", "Calls", "phone"], ["people", "People", "people"], ["settings", "Settings", "settings"]];
@@ -16,7 +17,7 @@ export function buildShell() {
   ui.rail = h("aside", { class: "rail" },
     h("a", { class: "brand-btn", href: "#/chats", "aria-label": "Sonar — chats" }, mark()),
     nav,
-    h("a", { class: "me", href: me ? `#/u/${encodeURIComponent(me.username)}` : "#/settings", title: "Your profile", "aria-label": "Your profile" }, avatar(me?.avatar, me?.displayName, "sm")));
+    h("a", { class: "me", href: me ? `#/u/${encodeURIComponent(me.username)}` : "#/settings", title: "Your profile", "aria-label": "Your profile" }, flairAvatar(me, "sm", avatar(me?.avatar, me?.displayName, "sm"))));   // U2-identity
   ui.list = h("section", { class: "list-pane", "aria-label": "List" });
   ui.main = h("main", { class: "main-pane", id: "main-pane", tabindex: "-1" });
   ui.app = h("div", { class: "app" }, ui.rail, ui.list, ui.main);

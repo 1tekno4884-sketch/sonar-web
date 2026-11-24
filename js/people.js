@@ -6,10 +6,11 @@ import { state, myId, emit } from "./state.js";
 import { mainEmpty, backBtn } from "./layout.js";
 import { startCall } from "./calls.js";
 import { RIPPLE_WEB_URL } from "../config.js";
+import { flairAvatar, flairName, ribbonsHtml } from "./identity.js";   // U2-identity
 
 const userRow = (u, extra) => h("a", { class: "rowbtn", href: `#/u/${enc(u.username)}`, "data-user": u.username },
-  avatar(u.avatar, u.displayName, "", u.sonar?.ring),
-  h("div", { class: "body" }, h("div", { class: "l1" }, h("span", { class: "name" }, h("span", { class: "t" }, u.displayName || u.username), badges(u.badges, { dev: false, hidden: u.sonar?.hiddenBadges || [] }))),
+  flairAvatar(u, "", avatar(u.avatar, u.displayName, "", u.sonar?.ring)),   // U2-identity: flair + banner
+  h("div", { class: "body" }, h("div", { class: "l1" }, h("span", { class: "name" }, h("span", { class: "t" }, flairName(u, u.displayName || u.username)), badges(u.badges, { dev: false, hidden: u.sonar?.hiddenBadges || [] }), ribbonsHtml(u, true))),
     h("div", { class: "l2" }, h("span", { class: "pv" }, "@" + u.username, u.sonar?.status ? ` · ${u.sonar.statusEmoji || ""} ${u.sonar.status}` : ""))),
   extra || null);
 
@@ -115,8 +116,9 @@ async function renderProfile(el, username) {
     h("div", { class: "top-bar" }, backBtn("#/people", "Back to people"), h("b", { class: "grow" }, u.displayName || u.username), more),
     h("div", { class: "banner", style: bannerUrl ? `background-image:url("${bannerUrl}")` : null }),
     h("div", { class: "body" },
-      avatar(u.avatar, u.displayName, "big", s.ring),
-      h("h1", {}, u.displayName || u.username, badges(u.badges, { hidden: s.hiddenBadges || [] })),
+      flairAvatar(u, "big", avatar(u.avatar, u.displayName, "big", s.ring)),   // U2-identity: flair, animated picture, banners
+      h("h1", {}, flairName(u, u.displayName || u.username), badges(u.badges, { hidden: s.hiddenBadges || [] })),
+      ribbonsHtml(u),
       h("div", { class: "handle" }, "@" + u.username, u.pronouns ? ` · ${u.pronouns}` : "", rel.followsMe && !me ? " · Follows you" : "", active ? ` · ${active}` : ""),
       s.status ? h("div", { class: "status" }, s.statusEmoji ? s.statusEmoji + " " : "", s.status) : null,
       u.tagline ? h("div", { style: "font-weight:600;margin-top:4px" }, u.tagline) : null,
