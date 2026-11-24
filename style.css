@@ -446,3 +446,13 @@ button.linkish:hover { text-decoration: underline; }
 .chan-info .chan-link { flex-wrap: nowrap; }
 .chan-info .chan-link input { flex: 1; min-width: 0; font-size: .875rem; }
 .chan-info button:not(.icon-btn) { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Owner badge (one account only): blue crest + "Owner" tag with a slow light sweep */
+.badge.owner { width: 1.05em; height: 1.05em; }
+.ownertag { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px 1px 3px; border-radius: 7px; font-size: 10px; font-weight: 700; color: #fff;
+  background: linear-gradient(90deg, #071D4F, #1E6BFF 55%, #3FD8FF); position: relative; overflow: hidden; vertical-align: middle; white-space: nowrap; }
+.ownertag .badge.owner { width: 13px; height: 13px; }
+.ownertag::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.45) 50%, transparent 70%);
+  transform: translateX(-120%); animation: ownershine 3.6s linear infinite; }
+@keyframes ownershine { to { transform: translateX(120%); } }
+@media (prefers-reduced-motion: reduce) { .ownertag::after { animation: none; display: none; } }

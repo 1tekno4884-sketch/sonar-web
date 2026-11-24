@@ -1,6 +1,6 @@
 // Sonar web service worker — caches the app shell only (HTML, CSS, JS, fonts, icons) so the app opens fast and
 // installs as a PWA. It never stores messages, media or API responses: those are on another origin and pass through.
-const VERSION = "sonar-shell-v2";
+const VERSION = "sonar-shell-v3";
 const SHELL = [
   "./", "index.html", "style.css", "calls.css", "config.js", "manifest.webmanifest",
   "js/app.js", "js/api.js", "js/dom.js", "js/state.js", "js/settings.js", "js/wallpaper.js", "js/line.js", "js/notify.js",

@@ -280,14 +280,24 @@ function badgeSvg(kind) {
   const c = document.createElementNS(ns, "path"); c.setAttribute("d", "M6,10.4 L8.8,13 L14.2,7.4"); c.setAttribute("fill", "none"); c.setAttribute("stroke", "#fff"); c.setAttribute("stroke-width", "2.2"); c.setAttribute("stroke-linecap", "round"); s.append(c);
   return s;
 }
+// Owner badge (Sonar 2.0 / Ripple 1.4): one account only. Blue crest with a white wave-crown + sparkle (same art as the apps).
+const OWNER_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="badge owner" role="img" aria-label="Owner"><title>Owner</title>' +
+  '<defs><linearGradient id="ownerg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#071D4F"/><stop offset=".5" stop-color="#1E6BFF"/><stop offset="1" stop-color="#3FD8FF"/></linearGradient></defs>' +
+  '<path d="M16 10Q50 2 84 10Q93 12 92 24C92 62 74 84 50 97C26 84 8 62 8 24Q7 12 16 10Z" fill="url(#ownerg)" stroke="rgba(255,255,255,.32)" stroke-width="4.5"/>' +
+  '<path d="M25 64L25 42Q31 47 36 53Q42 36 50 27Q58 36 64 53Q69 47 75 42L75 64Z" fill="#fff"/>' +
+  '<path d="M27 71H73" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle cx="50" cy="50" r="4.5" fill="#3FD8FF"/>' +
+  '<path d="M83 9Q83 20 94 20Q83 20 83 31Q83 20 72 20Q83 20 83 9Z" fill="#fff"/></svg>';
+function ownerSvg() { return document.importNode(new DOMParser().parseFromString(OWNER_SVG, "image/svg+xml").documentElement, true); }
+function ownerTag() { const s = h("span", { class: "ownertag", title: "The founder of Sonar and Ripple. Only one account has this badge." }); s.append(ownerSvg(), "Owner"); return s; }
 /** Verification badges. `hidden` = badges the person chose to hide in Sonar (sonar.hiddenBadges). */
 export function badges(b = {}, { dev = true, hidden = [] } = {}) {
   b = b || {};
   const show = (k) => b[k] && !hidden.includes(k);
   const out = [];
+  if (show("owner")) out.push(dev ? ownerTag() : ownerSvg());
   if (show("creator")) out.push(badgeSvg("creator")); else if (show("verified")) out.push(badgeSvg("verified"));
   if (show("brand")) out.push(badgeSvg("brand")); if (show("org")) out.push(badgeSvg("org"));
-  if (show("dev") && dev) out.push(h("span", { class: "devtag", title: "Given by Ripple's owner. Nobody can apply for it." }, "Certified Developer"));
+  if (show("dev") && dev && !show("owner")) out.push(h("span", { class: "devtag", title: "Given by Ripple's owner. Nobody can apply for it." }, "Certified Developer"));
   return out;
 }
 
