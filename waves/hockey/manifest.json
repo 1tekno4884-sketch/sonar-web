@@ -1,0 +1,24 @@
+{
+ "format": 1,
+ "id": "hockey",
+ "name": "Puck Splash",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "2-local",
+ "modes": [
+  "cpu",
+  "local"
+ ],
+ "description": "Slap the puck across a slick ice rink! Play the computer or a friend on one phone — first to 7 goals wins.",
+ "accent": "#4D7CFE",
+ "glyph": "🏒",
+ "tags": [
+  "arcade",
+  "sports",
+  "2 players"
+ ],
+ "score": "high"
+}

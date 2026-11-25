@@ -1,0 +1,23 @@
+{
+ "format": 1,
+ "id": "putt",
+ "name": "Reef Putt",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Nine mini-golf holes on a coral reef. Bank off rocks, dodge the puffer, keep out of the lagoon.",
+ "accent": "#F0855A",
+ "glyph": "⛳",
+ "tags": [
+  "sports",
+  "physics",
+  "casual"
+ ],
+ "score": "low"
+}

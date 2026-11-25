@@ -1,0 +1,474 @@
+{
+ "format": 1,
+ "games": [
+  {
+   "id": "b.anchor",
+   "slug": "anchor",
+   "name": "Anchor Drop",
+   "description": "Guess the ocean word letter by letter before the anchor bonks the sleepy octopus.",
+   "players": "2-local",
+   "orientation": "portrait",
+   "accent": "#3B6FD4",
+   "glyph": "⚓",
+   "score": "high",
+   "online": false,
+   "modes": [
+    "solo",
+    "local"
+   ],
+   "tags": [
+    "word",
+    "puzzle",
+    "party"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.breaker",
+   "slug": "breaker",
+   "name": "Coral Breaker",
+   "description": "Slide your paddle, bounce the pearl and smash through reefs of coral. Grab power-ups, clear every level.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#F0716A",
+   "glyph": "🧱",
+   "score": "high",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "arcade",
+    "classic"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.checkers",
+   "slug": "checkers",
+   "name": "Shell Checkers",
+   "description": "Classic draughts on a sandy beach. Jump shells, chain captures and crown your way across.",
+   "players": "2-online",
+   "orientation": "portrait",
+   "accent": "#C98A3E",
+   "glyph": "🐚",
+   "score": "high",
+   "online": true,
+   "modes": [
+    "cpu",
+    "local",
+    "online"
+   ],
+   "tags": [
+    "board",
+    "classic",
+    "strategy"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.dots",
+   "slug": "dots",
+   "name": "Net Weaver",
+   "description": "Take turns tying rope between knots. Close a square to catch a fish and go again. Most fish wins.",
+   "players": "2-online",
+   "orientation": "portrait",
+   "accent": "#7E57C2",
+   "glyph": "🕸️",
+   "score": "high",
+   "online": true,
+   "modes": [
+    "cpu",
+    "local",
+    "online"
+   ],
+   "tags": [
+    "board",
+    "classic",
+    "strategy"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.echo",
+   "slug": "echo",
+   "name": "Echo Shells",
+   "description": "Four singing shells hum a growing tune. Listen, then echo it back. How long can you go?",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#8E5BD9",
+   "glyph": "🐚",
+   "score": "high",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "memory",
+    "music",
+    "classic"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.eel",
+   "slug": "eel",
+   "name": "Eel",
+   "description": "Swipe to steer a hungry eel through the deep. Gulp glowing plankton, grow longer, and never bite your tail.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#17A589",
+   "glyph": "🐍",
+   "score": "high",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "arcade",
+    "classic"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.fathoms",
+   "slug": "fathoms",
+   "name": "Four Fathoms",
+   "description": "Drop pearls into the deep. Line up four — across, down or diagonal — before your rival does.",
+   "players": "2-online",
+   "orientation": "portrait",
+   "accent": "#3B5BDB",
+   "glyph": "🦪",
+   "score": "high",
+   "online": true,
+   "modes": [
+    "cpu",
+    "local",
+    "online"
+   ],
+   "tags": [
+    "board",
+    "classic"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.fleet",
+   "slug": "fleet",
+   "name": "Fleet Sonar",
+   "description": "Hide your fleet, then ping the dark water to find theirs. Sink all five ships before they sink yours.",
+   "players": "2-online",
+   "orientation": "portrait",
+   "accent": "#2FB86A",
+   "glyph": "📡",
+   "score": "high",
+   "online": true,
+   "modes": [
+    "cpu",
+    "online"
+   ],
+   "tags": [
+    "board",
+    "classic",
+    "strategy"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.hockey",
+   "slug": "hockey",
+   "name": "Puck Splash",
+   "description": "Slap the puck across a slick ice rink! Play the computer or a friend on one phone — first to 7 goals wins.",
+   "players": "2-local",
+   "orientation": "portrait",
+   "accent": "#4D7CFE",
+   "glyph": "🏒",
+   "score": "high",
+   "online": false,
+   "modes": [
+    "cpu",
+    "local"
+   ],
+   "tags": [
+    "arcade",
+    "sports",
+    "2 players"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.merge",
+   "slug": "merge",
+   "name": "Pearl Merge",
+   "description": "Swipe the lagoon to bump matching shells together. They grow into pearls, from grain of sand to sea crown.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#D9667F",
+   "glyph": "🦪",
+   "score": "high",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "puzzle",
+    "numbers",
+    "swipe"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.mines",
+   "slug": "mines",
+   "name": "Sea Mines",
+   "description": "Sweep the bay with number clues and flag every hidden mine. Your first tap is always safe.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#3D6DB3",
+   "glyph": "💣",
+   "score": "low",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "puzzle",
+    "logic",
+    "classic"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.pairs",
+   "slug": "pairs",
+   "name": "Tidepool Pairs",
+   "description": "Flip the tidepool cards and match every sea creature. Fewer flips, faster time, more points.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#22A89A",
+   "glyph": "🦀",
+   "score": "high",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "puzzle",
+    "memory",
+    "cards"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.putt",
+   "slug": "putt",
+   "name": "Reef Putt",
+   "description": "Nine mini-golf holes on a coral reef. Bank off rocks, dodge the puffer, keep out of the lagoon.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#F0855A",
+   "glyph": "⛳",
+   "score": "low",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "sports",
+    "physics",
+    "casual"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.reversi",
+   "slug": "reversi",
+   "name": "Flip Reef",
+   "description": "Trap your rival's discs between yours to flip the reef your colour. Most discs at the end wins.",
+   "players": "2-online",
+   "orientation": "portrait",
+   "accent": "#E8676B",
+   "glyph": "🪸",
+   "score": "high",
+   "online": true,
+   "modes": [
+    "cpu",
+    "local",
+    "online"
+   ],
+   "tags": [
+    "board",
+    "classic",
+    "strategy"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.runner",
+   "slug": "runner",
+   "name": "Wave Rider",
+   "description": "Surf an endless wave! Tap to hop, hold to fly higher, dodge rocks and jellyfish, and scoop up shells.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#FF8A4C",
+   "glyph": "🏄",
+   "score": "high",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "arcade",
+    "runner"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.slide",
+   "slug": "slide",
+   "name": "Slide Pool",
+   "description": "Slide the tiles back into place to rebuild a sunset sea scene. Or switch to numbers for a classic challenge.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#7A62D6",
+   "glyph": "🧩",
+   "score": "low",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "puzzle",
+    "sliding",
+    "classic"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.solitaire",
+   "slug": "solitaire",
+   "name": "Sandbar Solitaire",
+   "description": "Classic seven-column patience on a sunny sandbar. Draw 1 or 3, tap to move, undo anytime.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#1E9E7A",
+   "glyph": "🃏",
+   "score": "low",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "cards",
+    "classic",
+    "puzzle"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.stack",
+   "slug": "stack",
+   "name": "Reef Stack",
+   "description": "Little coral pieces sink into a 9-wide reef. Fill rows to clear them, and drop pearl bombs to blast a 3×3 hole.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#8E6CEF",
+   "glyph": "🐠",
+   "score": "high",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "arcade",
+    "puzzle"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.sudoku",
+   "slug": "sudoku",
+   "name": "Sudoku Sands",
+   "description": "Fresh number puzzles on warm beach sand, each with one true answer. Notes, hints and undo included.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#C2873A",
+   "glyph": "🔢",
+   "score": "low",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "puzzle",
+    "logic",
+    "numbers"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.tidetac",
+   "slug": "tidetac",
+   "name": "Tide Tac",
+   "description": "Shells versus starfish on a sandy 3×3. Three in a row takes the tide.",
+   "players": "2-online",
+   "orientation": "portrait",
+   "accent": "#1494B8",
+   "glyph": "⭕",
+   "score": "high",
+   "online": true,
+   "modes": [
+    "cpu",
+    "local",
+    "online"
+   ],
+   "tags": [
+    "board",
+    "classic"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.volley",
+   "slug": "volley",
+   "name": "Volley Bay",
+   "description": "Beach-ball paddle duel on the sand. Beat the computer or a friend on the same phone — first to 7 wins.",
+   "players": "2-local",
+   "orientation": "portrait",
+   "accent": "#E0B341",
+   "glyph": "🏐",
+   "score": "high",
+   "online": false,
+   "modes": [
+    "cpu",
+    "local"
+   ],
+   "tags": [
+    "arcade",
+    "classic",
+    "2 players"
+   ],
+   "hasScore": true
+  },
+  {
+   "id": "b.wordsearch",
+   "slug": "wordsearch",
+   "name": "Kelp Words",
+   "description": "Hunt for ocean words hidden every which way in the kelp. Drag across the letters to catch them.",
+   "players": "1",
+   "orientation": "portrait",
+   "accent": "#4E9A4A",
+   "glyph": "🔤",
+   "score": "low",
+   "online": false,
+   "modes": [
+    "solo"
+   ],
+   "tags": [
+    "puzzle",
+    "words"
+   ],
+   "hasScore": true
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+{
+ "format": 1,
+ "id": "dots",
+ "name": "Net Weaver",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "2-online",
+ "modes": [
+  "cpu",
+  "local",
+  "online"
+ ],
+ "description": "Take turns tying rope between knots. Close a square to catch a fish and go again. Most fish wins.",
+ "accent": "#7E57C2",
+ "glyph": "🕸️",
+ "tags": [
+  "board",
+  "classic",
+  "strategy"
+ ],
+ "score": "high"
+}

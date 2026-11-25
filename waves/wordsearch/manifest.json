@@ -1,0 +1,22 @@
+{
+ "format": 1,
+ "id": "wordsearch",
+ "name": "Kelp Words",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Hunt for ocean words hidden every which way in the kelp. Drag across the letters to catch them.",
+ "accent": "#4E9A4A",
+ "glyph": "🔤",
+ "tags": [
+  "puzzle",
+  "words"
+ ],
+ "score": "low"
+}

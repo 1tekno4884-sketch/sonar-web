@@ -1,0 +1,24 @@
+{
+ "format": 1,
+ "id": "anchor",
+ "name": "Anchor Drop",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "2-local",
+ "modes": [
+  "solo",
+  "local"
+ ],
+ "description": "Guess the ocean word letter by letter before the anchor bonks the sleepy octopus.",
+ "accent": "#3B6FD4",
+ "glyph": "⚓",
+ "tags": [
+  "word",
+  "puzzle",
+  "party"
+ ],
+ "score": "high"
+}

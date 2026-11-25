@@ -1,0 +1,22 @@
+{
+ "format": 1,
+ "id": "stack",
+ "name": "Reef Stack",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Little coral pieces sink into a 9-wide reef. Fill rows to clear them, and drop pearl bombs to blast a 3×3 hole.",
+ "accent": "#8E6CEF",
+ "glyph": "🐠",
+ "tags": [
+  "arcade",
+  "puzzle"
+ ],
+ "score": "high"
+}

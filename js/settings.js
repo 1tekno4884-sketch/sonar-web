@@ -5,6 +5,7 @@
 import { get, put } from "./api.js";
 import { emit, state } from "./state.js";
 import { applyBubbleStyle } from "./custom.js";   // U2-custom: Bubble Studio
+import { applyU3, nightSeed } from "./u3.js";   // U3-custom: shared look options
 
 let blob = {};
 let pushTimer = null, lastPull = 0;
@@ -143,6 +144,11 @@ export const PRESETS = {
   "Indigo": "#3F51B5", "Violet": "#7E57C2", "Teal": "#00897B", "Emerald": "#2E7D32", "Lime": "#7CB342", "Amber": "#FFA000", "Sunset": "#F4511E",
   "Crimson": "#C62828", "Rose": "#D81B60", "Graphite": "#5F6B7A", "Mono": "#808080",
   "Abyss": "#1A2A6C", "Lagoon": "#00A5A8", "Coral": "#FF6F61", "Kelp": "#5B7F2B", "Pearl": "#B8A9C9", "Sunset Reef": "#FF8A3D",
+  // U3-custom: the rest of the app's presets, so a synced choice renders the same on the web
+  "Seaglass": "#6FBFA8", "Tidepool": "#2C8C99", "Anemone": "#E0569B", "Nautilus": "#B5651D", "Driftwood": "#8D7B68", "Moon jelly": "#9FA8DA",
+  "Plankton": "#7BD389", "Squid ink": "#2B2D42", "Sea urchin": "#6A1B9A", "Sandbar": "#D9B26F", "Glow tide": "#00E5FF", "Red tide": "#B71C1C",
+  "Starfish": "#FF8F00", "Storm": "#455A64", "Glacier": "#80DEEA", "Lava": "#BF360C", "Mangrove": "#5D7A3A", "Sunken gold": "#C9A227",
+  "Bluefin": "#0D5C8C", "Jellyfish": "#F48FB1", "Orca": "#263238", "Bioluminescence": "#3DDC97",
 };
 export const WEB_PRESETS = ["Sonar", "Ripple blue", "Wake seafoam", "Abyss", "Lagoon", "Coral", "Kelp", "Pearl", "Sunset Reef"];
 export const PRESET_LABEL = { "Wake seafoam": "Seafoam" };
@@ -154,6 +160,8 @@ export const THEME_MODES = [["System", "System"], ["Light", "Light"], ["Dark", "
 export const BUBBLES = ["Round", "Soft", "Square", "Outline", "Glass", "Minimal"];
 
 export function seedHex() {
+  const night = nightSeed(getS("u3", null), isDark(), PRESETS);   // U3-custom: Day & night colour
+  if (night) return night;
   const src = getS("appearance.theme.source");
   if (src === "Custom" && getS("appearance.theme.seed") != null) return argbHex(getS("appearance.theme.seed"));
   return PRESETS[getS("appearance.theme.preset")] || PRESETS.Sonar;
@@ -206,6 +214,7 @@ export function applyTheme() {
   root.classList.toggle("reduce-motion", !!getS("a11y.reduceMotion") || ["Reduced", "Off"].includes(getS("appearance.motion")));
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", p.dark ? p.bg : p.vivid);
   applyBubbleStyle(getS("custom.style"));   // U2-custom
+  applyU3(getS("u3", null), p.bg);   // U3-custom
 }
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { applyTheme(); emit("settings"); });
 setInterval(() => { if (getS("appearance.theme.mode") === "Scheduled") applyTheme(); }, 60_000);

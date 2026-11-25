@@ -1,0 +1,22 @@
+{
+ "format": 1,
+ "id": "eel",
+ "name": "Eel",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Swipe to steer a hungry eel through the deep. Gulp glowing plankton, grow longer, and never bite your tail.",
+ "accent": "#17A589",
+ "glyph": "🐍",
+ "tags": [
+  "arcade",
+  "classic"
+ ],
+ "score": "high"
+}

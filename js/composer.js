@@ -7,6 +7,7 @@ import { myId } from "./state.js";
 import { getS, draft, setDraft } from "./settings.js";
 import { emojiPicker } from "./emoji.js";
 import { prepareImage, videoMeta, webmToOgg } from "./media.js";
+import { composerItems } from "./u3social.js";   // U3-social: Whisper / Lantern (beta)
 
 const MAX_TRAY = 10;
 
@@ -91,6 +92,7 @@ export function createComposer(chat0, hooks) {
       { label: silent ? "Send with notification" : "Send silently", icon: silent ? "bell" : "bellOff", onclick: () => setSilent(!silent) },
       isChannel ? null : { label: "Send a sonar ping", icon: "ping", onclick: () => hooks.send({ type: "ping", text: "📡 Ping" }).catch(() => {}) },
       { label: "Record a voice note", icon: "mic", onclick: startRecording },
+      ...composerItems(chat(), hooks.send),   // U3-social
     ], { label: "More" });
   }
 

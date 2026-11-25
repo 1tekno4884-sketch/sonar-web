@@ -45,7 +45,7 @@ async function route() {
     try { const c = await t.list(ui.list); if (typeof c === "function") ui.list._cleanup = c; } catch (e) { console.error(e); }
   }
   // main pane
-  const isChannelRoute = name === "channels" || name === "channel";
+  const isChannelRoute = name === "channels" || name === "channel" || name === "map";   // U3-social: #/map (Tide Map) also lives in the Chats tab
   // channels live in the Chats tab: its main pane gets [":channels"] or [":channel", id] (chat ids never start with ":")
   const detailArgs = isChannelRoute ? [":" + name, ...args] : name === "chat" || name === "u" ? args : name === tab ? args : [];
   const isDetail = (name === "chat" && args[0]) || (name === "u" && args[0]) || ((name === "settings" || name === "calls") && args[0]) || isChannelRoute;
@@ -188,7 +188,7 @@ document.addEventListener("keydown", (e) => {
     if ($(".viewer")) return;            // the viewer handles its own Esc
     if (!$("#call-layer").hidden && $("#call-layer").contains(document.activeElement)) return;  // calls handle theirs
     const { name, args } = parse();
-    if ((name === "chat" && args[0]) || name === "channels" || name === "channel") { location.hash = "#/chats"; }
+    if ((name === "chat" && args[0]) || name === "channels" || name === "channel" || name === "map") { location.hash = "#/chats"; }   // U3-social: map
     else if (name === "u" && args[0]) { history.length > 1 ? history.back() : (location.hash = "#/people"); }
     else if (name === "settings" && args[0] && ui.app?.classList.contains("detail")) location.hash = "#/settings";
     else if (name === "calls" && args[0]) location.hash = "#/calls";

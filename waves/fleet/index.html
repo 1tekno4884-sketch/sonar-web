@@ -1,0 +1,508 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>Fleet Sonar</title><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none}
+:root{--bg:#06202a;--fg:#e8f7fb;--sub:#9cc3cf;--card:#0d3341;--line:#1d4c5c;--acc:#1494B8;--acc2:#6FD3E6;--on:#fff;--good:#3ddc97;--bad:#ff6b6b;--warn:#ffc857}
+#k-app{position:fixed;inset:0;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#k-bar{display:flex;align-items:center;gap:8px;padding:10px 12px 6px;flex:0 0 auto}
+#k-bar .t{font-weight:700;font-size:17px;letter-spacing:.2px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#k-bar .s{font-variant-numeric:tabular-nums;font-weight:700;background:var(--card);border-radius:999px;padding:4px 12px;min-width:44px;text-align:center}
+#k-bar .s:empty{display:none}
+.k-ib{width:38px;height:38px;border-radius:50%;border:0;background:var(--card);color:var(--fg);display:grid;place-items:center;font-size:18px;cursor:pointer;flex:0 0 auto}
+.k-ib:active{transform:scale(.94)}
+#k-status{text-align:center;color:var(--sub);font-size:14px;min-height:20px;padding:0 12px 4px;flex:0 0 auto}
+#k-stage{position:relative;flex:1 1 auto;min-height:0}
+#k-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.k-ov{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);z-index:50;padding:24px;animation:k-f .18s ease-out}
+.k-card{background:var(--card);border-radius:24px;padding:22px 20px 16px;width:min(340px,100%);text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.k-card h2{margin:0 0 6px;font-size:22px}
+.k-card p{margin:0 0 14px;color:var(--sub)}
+.k-card .k-emb{font-size:44px;line-height:1;margin-bottom:8px}
+.k-btn{display:block;width:100%;border:0;border-radius:999px;padding:12px 16px;margin:8px 0 0;font:600 15px system-ui,sans-serif;cursor:pointer;background:var(--line);color:var(--fg)}
+.k-btn.p{background:var(--acc);color:var(--on)}
+.k-btn:active{transform:scale(.98)}
+.k-row{display:flex;gap:8px}.k-row .k-btn{flex:1}
+.k-toast{position:fixed;left:50%;width:max-content;max-width:calc(100vw - 32px);text-align:center;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--card);color:var(--fg);padding:10px 16px;border-radius:999px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.3);animation:k-f .2s ease-out;font-weight:600}
+.k-seg{display:flex;background:var(--line);border-radius:999px;padding:3px;margin:8px 0 0}
+.k-seg button{flex:1;border:0;background:none;color:var(--fg);padding:8px;border-radius:999px;font:600 14px system-ui,sans-serif}
+.k-seg button.on{background:var(--acc);color:var(--on)}
+.k-chip{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--line);font-size:13px;font-weight:600}
+@keyframes k-f{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body><script>
+(function () {
+'use strict';
+const W = window.Wave || {
+version: 1, host: 'dev', ready() {}, info: async () => ({ gameId: 'dev', player: { name: 'You', username: null }, match: null, theme: { dark: !matchMedia('(prefers-color-scheme: light)').matches, accent: '#1494B8' }, reduceMotion: false, locale: navigator.language, best: null }),
+submitScore: async (n) => ({ best: n, isBest: true, rank: null }), saveState: async (d) => { try { localStorage.setItem('k-save', JSON.stringify(d)); } catch (e) {} return true; },
+loadState: async () => { try { return JSON.parse(localStorage.getItem('k-save')); } catch (e) { return null; } }, haptic() {}, exit() { location.reload(); },
+sendMove: async () => ({ seq: 0 }), onMove() {}, endMatch() {}, onPause() {}, onResume() {},
+};
+const $ = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const hex = (h) => { h = h.replace('#', ''); return [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16)); };
+const mix = (a, b, t) => { const x = hex(a), y = hex(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+let ac = null, readySent = false, pauseCbs = [], resumeCbs = [], opts = {}, ovStack = [];
+const K = {
+W, $, mix, paused: false, muted: false, reduceMotion: false, info: null, online: null, colors: {},
+/** Build the page chrome, apply the host theme, then call cb(info). opts: {title, accent, accent2, score:true, dark:{}, light:{}, onRestart, menuExtra:[{label,on}]} */
+async boot(o, cb) {
+opts = o || {};
+try { K.muted = localStorage.getItem('k-mute') === '1'; } catch (e) {}
+let info; try { info = await W.info(); } catch (e) { info = { theme: { dark: true }, player: { name: 'You' }, match: null }; }
+K.info = info; K.reduceMotion = !!info.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dark = info.theme ? info.theme.dark !== false : true;
+const acc = opts.accent || '#1494B8', acc2 = opts.accent2 || mix(acc, '#ffffff', 0.45);
+const base = dark ? { bg: mix(acc, '#000000', 0.86), card: mix(acc, '#000000', 0.72), line: mix(acc, '#000000', 0.55), fg: '#eef8fb', sub: mix(acc, '#ffffff', 0.62) }
+: { bg: mix(acc, '#ffffff', 0.92), card: '#ffffff', line: mix(acc, '#ffffff', 0.74), fg: mix(acc, '#000000', 0.82), sub: mix(acc, '#000000', 0.5) };
+const c = Object.assign(base, dark ? opts.dark : opts.light, { acc, acc2, on: '#ffffff', good: dark ? '#3ddc97' : '#16a36a', bad: dark ? '#ff6b6b' : '#d93c3c', warn: '#f5b83d', dark });
+K.colors = c;
+const r = document.documentElement.style;
+for (const k of ['bg', 'fg', 'sub', 'card', 'line', 'acc', 'acc2', 'on', 'good', 'bad', 'warn']) r.setProperty('--' + k, c[k]);
+document.title = opts.title || 'Game';
+const app = $('div'); app.id = 'k-app';
+const bar = $('div'); bar.id = 'k-bar';
+const back = $('button', 'k-ib', '&#x2715;'); back.setAttribute('aria-label', 'Close'); back.onclick = () => K.exit();
+const t = $('div', 't'); t.textContent = opts.title || '';
+const s = $('div', 's'); s.id = 'k-score';
+const m = $('button', 'k-ib', '&#9776;'); m.setAttribute('aria-label', 'Menu'); m.onclick = () => K.pauseMenu();
+bar.append(back, t, s, m);
+const st = $('div'); st.id = 'k-status';
+const stage = $('div'); stage.id = 'k-stage';
+app.append(bar, st, stage); document.body.append(app);
+K.stage = stage;
+if (info.match) {
+const m = info.match;
+K.online = {
+seat: m.you, players: m.players, id: m.id, over: m.status === 'over', winner: m.winner,
+name: (seat) => (m.players[seat] && (m.players[seat].name || m.players[seat].username)) || (seat === m.you ? 'You' : 'Friend'),
+onMove(cb) { W.onMove(cb); },
+send(mv) { return W.sendMove(mv); },
+end(winner, text) { K.online.over = true; W.endMatch({ winner, text }); },
+};
+}
+W.onPause(() => { K.paused = true; pauseCbs.forEach((f) => f()); });
+W.onResume(() => { K.paused = false; resumeCbs.forEach((f) => f()); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { K.paused = true; pauseCbs.forEach((f) => f()); } });
+cb && cb(info);
+},
+/** Boot options can't see functions declared inside the boot callback: games register them here (Kit.hooks = [fn…]) and the options call Kit.hook(i). */
+hooks: [], hook(i) { const f = K.hooks[i]; if (f) f(); },
+ready() { if (!readySent) { readySent = true; W.ready(); } },
+onPause(f) { pauseCbs.push(f); }, onResume(f) { resumeCbs.push(f); },
+title(t) { document.querySelector('#k-bar .t').textContent = t; },
+status(t) { document.getElementById('k-status').textContent = t == null ? '' : t; },
+score(n) { document.getElementById('k-score').textContent = n == null ? '' : String(n); },
+submit(n) { return W.submitScore(n).catch(() => null); },
+save(d) { return W.saveState(d).catch(() => false); },
+load() { return W.loadState().catch(() => null); },
+haptic(k) { try { W.haptic(k || 'tap'); } catch (e) {} },
+exit() { if (opts.onExit && opts.onExit() === false) return; W.exit(); },
+/** Canvas filling the stage; cv.w/h are CSS px. Calls onResize(w,h) on every size change. */
+canvas(onResize) {
+const cv = $('canvas'); K.stage.append(cv);
+const ctx = cv.getContext('2d'); const o = { cv, ctx, w: 1, h: 1, dpr: 1 };
+const fit = (cb) => {
+const r = K.stage.getBoundingClientRect(); const d = Math.min(3, window.devicePixelRatio || 1);
+o.w = Math.max(1, r.width); o.h = Math.max(1, r.height); o.dpr = d;
+cv.width = Math.round(o.w * d); cv.height = Math.round(o.h * d); ctx.setTransform(d, 0, 0, d, 0, 0);
+cb && onResize && onResize(o.w, o.h);
+};
+fit(false); new ResizeObserver(() => fit(true)).observe(K.stage);   // sizes now; onResize only from the observer (after your setup ran)
+return o;
+},
+/** rAF loop: fn(dt seconds, capped 1/20). Skips frames while paused. Returns stop(). */
+loop(fn) {
+let last = 0, on = true;
+const f = (t) => { if (!on) return; const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t; if (!K.paused) fn(dt, t); requestAnimationFrame(f); };
+requestAnimationFrame(f); return () => { on = false; };
+},
+/** Pointer helper with stage-relative CSS px. h = {down(x,y,e), move(x,y,e), up(x,y,e)} */
+pointer(el, h) {
+let id = null;
+const p = (e) => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+el.addEventListener('pointerdown', (e) => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} K.unlockAudio(); h.down && h.down(...p(e), e); });
+el.addEventListener('pointermove', (e) => { if (e.pointerId === id || (id === null && h.hover)) (id === null ? h.hover : h.move) && (id === null ? h.hover : h.move)(...p(e), e); });
+const end = (e) => { if (e.pointerId !== id) return; id = null; h.up && h.up(...p(e), e); };
+el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+},
+/** Overlay card. o = {emoji, title, text, html, buttons:[{label, primary, on, keep}], dismiss} → close() */
+menu(o) {
+const ov = $('div', 'k-ov'); const card = $('div', 'k-card');
+if (o.emoji) card.append($('div', 'k-emb', o.emoji));
+if (o.title) { const h = $('h2'); h.textContent = o.title; card.append(h); }
+if (o.text) { const p = $('p'); p.textContent = o.text; card.append(p); }
+if (o.html) card.append(typeof o.html === 'string' ? $('div', '', o.html) : o.html);
+const close = () => { ov.remove(); ovStack = ovStack.filter((x) => x !== close); };
+for (const b of o.buttons || []) {
+const e = $('button', 'k-btn' + (b.primary ? ' p' : '')); e.textContent = b.label;
+e.onclick = () => { K.sfx('tap'); if (!b.keep) close(); b.on && b.on(); }; card.append(e);
+}
+if (o.dismiss) ov.onclick = (e) => { if (e.target === ov) close(); };
+ov.append(card); document.body.append(ov); ovStack.push(close); return close;
+},
+closeMenus() { ovStack.slice().forEach((f) => f()); },
+pauseMenu() {
+K.paused = true; pauseCbs.forEach((f) => f());
+const resume = () => { K.paused = false; resumeCbs.forEach((f) => f()); };
+K.menu({ title: 'Paused', buttons: [
+{ label: 'Resume', primary: true, on: resume },
+...(opts.onRestart && !K.online ? [{ label: 'Restart', on: () => { K.paused = false; opts.onRestart(); } }] : []),
+...((opts.menuExtra || []).map((b) => ({ label: b.label, on: () => { K.paused = false; b.on(); } }))),
+{ label: K.muted ? 'Sound: off' : 'Sound: on', on: () => { K.muted = !K.muted; try { localStorage.setItem('k-mute', K.muted ? '1' : '0'); } catch (e) {} resume(); } },
+{ label: 'Exit game', on: () => K.exit() },
+] });
+},
+toast(t, ms) { const e = $('div', 'k-toast'); e.textContent = t; document.body.append(e); setTimeout(() => e.remove(), ms || 1600); },
+unlockAudio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); },
+/** Tiny synthesized sounds: tap pop good bad win lose bounce drop */
+sfx(name) {
+if (K.muted) return; K.unlockAudio(); if (!ac) return;
+const S = { tap: [[660, 0.04, 'sine', 0.08]], pop: [[520, 0.05, 'triangle', 0.12], [880, 0.05, 'triangle', 0.08]], good: [[660, 0.07, 'sine', 0.12], [990, 0.09, 'sine', 0.1]],
+bad: [[220, 0.12, 'sawtooth', 0.07], [160, 0.14, 'sawtooth', 0.06]], win: [[523, 0.1, 'triangle', 0.12], [659, 0.1, 'triangle', 0.12], [784, 0.1, 'triangle', 0.12], [1046, 0.2, 'triangle', 0.12]],
+lose: [[392, 0.14, 'triangle', 0.1], [330, 0.14, 'triangle', 0.1], [262, 0.24, 'triangle', 0.1]], bounce: [[440, 0.03, 'square', 0.05]], drop: [[300, 0.06, 'sine', 0.14], [180, 0.08, 'sine', 0.1]] }[name] || [];
+let t = ac.currentTime;
+for (const [f, d, type, v] of S) {
+const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f;
+g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d + 0.02); t += d * 0.9;
+}
+},
+rand: (a, b) => a + Math.random() * (b - a),
+ri: (a, b) => Math.floor(a + Math.random() * (b - a + 1)),
+shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; },
+rr(ctx, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); },
+/** Standard mode picker for 2-player board games. modes: subset of ['cpu','local'] (online is automatic). */
+pickMode(o, cb) {
+if (K.online) { cb('online'); return; }
+const b = [];
+if (o.modes.includes('cpu')) b.push({ label: o.cpuLabel || 'Play the computer', primary: true, on: () => cb('cpu') });
+if (o.modes.includes('local')) b.push({ label: 'Two players, this phone', primary: !o.modes.includes('cpu'), on: () => cb('local') });
+if (o.online) b.push({ label: 'Challenge a friend online', on: () => K.menu({ emoji: '💬', title: 'Play a friend', text: 'Close the game, tap “Challenge a friend” on its page, then pick a chat. Moves arrive in that chat.', buttons: [{ label: 'OK', primary: true, on: () => K.pickMode(o, cb) }] }) });
+K.menu({ emoji: o.emoji, title: o.title, text: o.text, buttons: b });
+},
+};
+window.Kit = K;
+})();
+</script><script>
+Kit.boot({ title: 'Fleet Sonar', accent: '#2FB86A', onRestart: () => Kit.hook(0)}, () => {
+Kit.hooks = [() => start(mode)];
+const C = Kit.colors, N = 10, SIZES = [5, 4, 3, 3, 2], NAMES = ['Mothership', 'Cruiser', 'Sub', 'Frigate', 'Scout'];
+let mode, fleets, shots, turn, over, result, me = 0, myLocal, locked, hist = [], pending = null, cpuTimer = 0, clock = 0, pings = [], cursor = 44, keyed = false, btns = [], wins = 0, occCache = [null, null];
+const g = Kit.canvas(draw);
+const cellsOf = (s) => Array.from({ length: s.n }, (_, k) => s.i + (s.d ? k * N : k));
+const fits = (s) => s.i >= 0 && s.i < N * N && (s.d ? Math.floor(s.i / N) + s.n <= N : (s.i % N) + s.n <= N);
+function occOf(f) { const o = new Int8Array(N * N).fill(-1); f.forEach((s, k) => cellsOf(s).forEach((c) => (o[c] = k))); return o; }
+function validFleet(f) {
+if (!Array.isArray(f) || f.length !== SIZES.length) return false;
+const seen = new Set();
+for (let k = 0; k < f.length; k++) { const s = f[k]; if (!s || s.n !== SIZES[k] || !fits(s)) return false; for (const c of cellsOf(s)) { if (seen.has(c)) return false; seen.add(c); } }
+return true;
+}
+function randFleet() {
+for (;;) {
+const f = [], used = new Set(); let ok = true;
+for (const n of SIZES) {
+let s = null;
+for (let t = 0; t < 200 && !s; t++) { const c = { i: Math.floor(Math.random() * N * N), d: Math.random() < 0.5 ? 0 : 1, n }; if (fits(c) && cellsOf(c).every((x) => !used.has(x))) s = c; }
+if (!s) { ok = false; break; }
+cellsOf(s).forEach((x) => used.add(x)); f.push(s);
+}
+if (ok) return f;
+}
+}
+const fnv = (str) => { let h = 2166136261; for (let k = 0; k < str.length; k++) { h ^= str.charCodeAt(k); h = Math.imul(h, 16777619); } return h >>> 0; };
+function keyFor(seat) { let a = fnv(Kit.online.id + '|fleet|' + seat); return SIZES.map(() => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) % 200; }); }
+const encode = (f, seat) => { const k = keyFor(seat); return f.map((s, j) => ((s.i * 2 + s.d + k[j]) % 200).toString(36).padStart(2, '0')).join(''); };
+function decode(str, seat) {
+if (typeof str !== 'string' || !/^[0-9a-z]{10}$/.test(str)) return null;
+const k = keyFor(seat);
+const f = SIZES.map((n, j) => { const v = (parseInt(str.substr(j * 2, 2), 36) - k[j] + 400) % 200; return { i: v >> 1, d: v & 1, n }; });
+return validFleet(f) ? f : null;
+}
+const occ = (s) => occCache[s] || (fleets[s] ? (occCache[s] = occOf(fleets[s])) : null);
+const sunkShip = (s, k) => cellsOf(fleets[s][k]).every((c) => shots[1 - s].includes(c));
+const allSunk = (s) => fleets[s] && fleets[s].every((_, k) => sunkShip(s, k));
+function reset() {
+fleets = [null, null]; shots = [[], []]; turn = 0; over = false; result = null; occCache = [null, null]; pings = [];
+}
+function legal(mv, seat) {
+if (!mv || !Number.isInteger(mv.shot) || mv.shot < 0 || mv.shot >= N * N || over || seat !== turn) return false;
+if (shots[seat].includes(mv.shot)) return false;
+return !!(fleets[seat] || decode(mv.f, seat));
+}
+/** One shot by `seat`. Returns nothing; updates state and gives feedback unless silent. */
+function apply(seat, mv, silent) {
+let fresh = false;
+if (!fleets[seat]) { fleets[seat] = decode(mv.f, seat); occCache[seat] = null; fresh = true; }
+shots[seat].push(mv.shot);
+const msgs = [];
+const judge = (sh, i) => {   // sh fired at i on fleet 1-sh
+const o = occ(1 - sh); if (!o) return;
+const k = o[i];
+if (k < 0) { msgs.push([sh, 'miss']); return; }
+msgs.push([sh, sunkShip(1 - sh, k) ? 'sunk' : 'hit', k]);
+};
+if (fresh) for (const i of shots[1 - seat]) judge(1 - seat, i);
+judge(seat, mv.shot);
+turn = 1 - seat;
+for (const s of [seat, 1 - seat]) if (!over && allSunk(1 - s)) { over = true; result = { p: s }; }
+pings.push({ s: seat, i: mv.shot, t: clock });
+if (!silent) feedback(msgs);
+if (mode === 'cpu') Kit.save(over ? { wins } : { wins, game: { f: fleets, s: shots } });
+}
+function feedback(msgs) {
+let best = null;
+for (const m of msgs) if (!best || ['miss', 'hit', 'sunk'].indexOf(m[1]) >= ['miss', 'hit', 'sunk'].indexOf(best[1])) best = m;
+if (!best) { Kit.sfx('tap'); return; }
+const [sh, what, k] = best, mine = sh === me, who = name(sh);
+if (what === 'miss') { Kit.sfx('tap'); if (!mine) Kit.haptic('light'); return; }
+if (what === 'hit') { Kit.sfx(mine ? 'good' : 'bad'); Kit.haptic(mine ? 'medium' : 'warning'); Kit.toast(mine ? 'Hit!' : `${who} hit your ${NAMES[k]}`, 1200); return; }
+Kit.sfx(mine ? 'win' : 'lose'); Kit.haptic('heavy');
+Kit.toast(mine ? `You sank their ${NAMES[k]}!` : `${who} sank your ${NAMES[k]}`, 1800);
+}
+function cpuShot() {
+const mine = shots[1], o = occ(0), hits = new Set(), dead = new Set();
+for (const i of mine) if (o[i] >= 0) hits.add(i);
+const left = [];
+fleets[0].forEach((s, k) => { if (sunkShip(0, k)) cellsOf(s).forEach((c) => dead.add(c)); else left.push(s.n); });
+const live = [...hits].filter((c) => !dead.has(c)), heat = new Float64Array(N * N), shot = new Set(mine);
+for (const n of left) for (let i = 0; i < N * N; i++) for (const d of [0, 1]) {
+const s = { i, d, n }; if (!fits(s)) continue;
+const cs = cellsOf(s); let cover = 0, bad = false;
+for (const c of cs) { if (dead.has(c) || (shot.has(c) && !hits.has(c))) { bad = true; break; } if (hits.has(c)) cover++; }
+if (bad) continue;
+const w = cover ? 40 * cover : live.length ? 0.02 : 1;
+for (const c of cs) if (!shot.has(c)) heat[c] += w;
+}
+const open = []; for (let i = 0; i < N * N; i++) if (!shot.has(i)) open.push(i);
+if (!live.length && Math.random() < 0.5) { const par = open.filter((i) => ((i % N) + Math.floor(i / N)) % 2 === 0); const pool = par.length ? par : open; return pool[Math.floor(Math.random() * pool.length)]; }
+let best = open[0], bv = -1;
+for (const i of open) { const v = heat[i] + Math.random() * 0.5; if (v > bv) { bv = v; best = i; } }
+return best;
+}
+function cpu() {
+cpuTimer = 0;
+if (over || mode !== 'cpu' || turn !== 1) return;
+apply(1, { shot: cpuShot() }, false); afterMove();
+}
+function afterMove() {
+if (over) return finish();
+setStatus();
+if (mode === 'cpu' && turn === 1 && !cpuTimer) cpuTimer = setTimeout(cpu, 750);
+}
+const name = (p) => mode === 'online' ? (p === me ? 'You' : Kit.online.name(p)) : (p === 0 ? 'You' : 'Computer');
+function setStatus() {
+if (over) return;
+if (!locked) { Kit.status('Arrange your fleet — tap a ship to turn it'); return; }
+if (mode === 'online') Kit.status(pending ? 'Pinging…' : turn === me ? 'Your turn — tap the sonar to ping' : `Waiting for ${name(turn)}…`);
+else Kit.status(turn === 0 ? 'Your turn — tap the sonar to ping' : 'Computer is listening…');
+}
+function finish(silent) {
+const w = result.p; const title = w === me ? 'You sank their fleet!' : `${name(w)} sank your fleet`;
+Kit.status(title); const emoji = w === me ? '🏆' : '🌊';
+if (mode === 'cpu') {
+if (w === 0) { wins++; Kit.submit(wins); Kit.sfx('win'); Kit.haptic('success'); } else { Kit.sfx('lose'); Kit.haptic('error'); }
+Kit.score(wins); Kit.save({ wins });
+}
+const text = `${shots[w].length} pings, ${shots[w].filter((i) => occ(1 - w)[i] >= 0).length} hits.` + (mode === 'cpu' ? ` Wins: ${wins}` : '');
+if (mode === 'online') { maybeEnd(); setTimeout(() => { if (over) Kit.menu({ emoji, title, text, buttons: [{ label: 'Back to chat', primary: true, on: () => Kit.exit() }, { label: 'Look at the sonar' }] }); }, silent ? 200 : 1300); }
+else setTimeout(() => Kit.menu({ emoji, title, text, buttons: [{ label: 'Play again', primary: true, on: () => start('cpu') }, { label: 'Look at the sonar' }] }), 1300);
+}
+function maybeEnd() {
+if (mode !== 'online' || !over || pending || Kit.online.over) return;
+Kit.online.end(result.p, `${Kit.online.name(result.p)} sank the fleet`);
+}
+function rebuild() {
+Kit.closeMenus(); reset();
+for (const h of hist) apply(h.seat, h.mv, true);
+if (fleets[me]) { myLocal = fleets[me]; locked = true; }
+setStatus();
+}
+function onNet(mv, meta) {
+if (pending) {
+if (!meta.mine && meta.seat === turn && legal(mv, meta.seat)) { hist.push(pending); pending = null; }
+else { pending = null; rebuild(); }
+}
+if (!legal(mv, meta.seat)) return;
+const h = { seat: meta.seat, mv: mv.f && !fleets[meta.seat] ? { shot: mv.shot, f: mv.f } : { shot: mv.shot } };
+hist.push(h); apply(h.seat, h.mv, !!meta.replay);
+if (fleets[me] && !locked) { myLocal = fleets[me]; locked = true; }
+if (over) finish(!!meta.replay); else setStatus();
+}
+const myTurn = () => locked && !over && (mode === 'cpu' ? turn === 0 : turn === me && !pending);
+function fire(i) {
+if (!myTurn()) { if (locked && !over && mode === 'online' && turn !== me) Kit.toast('Not your turn yet'); return; }
+if (shots[me].includes(i)) { Kit.toast('Already pinged there'); return; }
+cursor = i;
+if (mode === 'cpu') { apply(0, { shot: i }, false); return afterMove(); }
+const mv = { shot: i }; if (!fleets[me]) mv.f = encode(myLocal, me);
+const h = { seat: me, mv }; pending = h; apply(me, mv, false); setStatus();
+if (over) finish(false);
+Kit.online.send(mv).then(() => { if (pending === h) { hist.push(h); pending = null; setStatus(); maybeEnd(); } })
+.catch((e) => { if (pending === h) { pending = null; rebuild(); Kit.toast(e && e.code === 'conflict' ? 'Your friend moved first' : 'Ping not sent — try again'); } });
+}
+function ready() {
+locked = true; Kit.sfx('good'); Kit.haptic('medium');
+if (mode === 'cpu') { fleets[0] = myLocal; occCache[0] = null; }
+setStatus();
+}
+function rotate(i) {
+const o = occOf(myLocal), k = o[i]; if (k < 0) return;
+const s = myLocal[k], r = Math.floor(i / N), c = i % N, cand = [];   // pivot around the tapped cell, else around the bow
+cand.push(s.d ? { i: r * N + Math.max(0, Math.min(N - s.n, c - (r - Math.floor(s.i / N)))), d: 0, n: s.n } : { i: Math.max(0, Math.min(N - s.n, r - (c - s.i % N))) * N + c, d: 1, n: s.n }, { i: s.i, d: 1 - s.d, n: s.n });
+for (const t of cand) { const f = myLocal.slice(); f[k] = t; if (validFleet(f)) { myLocal = f; Kit.sfx('pop'); return; } }
+Kit.sfx('bad');
+}
+function geo() {
+const W = g.w, H = g.h;
+if (!locked) { const S = Math.min(W - 40, H - 140, 440); return { S, x: (W - S) / 2, y: Math.max(14, (H - S - 80) / 2) }; }
+let T = Math.min(W - 28, H * 0.6, 600), M = Math.min(H - T - 44, W * 0.5, 320);
+if (M < 120) { M = Math.min(120, W * 0.45); T = Math.max(160, Math.min(T, H - M - 44)); }
+const tx = (W - T) / 2, ty = Math.max(6, (H - T - M - 36) / 2);
+return { T, tx, ty, M, mx: tx, my: ty + T + 30 };
+}
+const cellIn = (px, py, x, y, S) => { const q = S / N, c = Math.floor((px - x) / q), r = Math.floor((py - y) / q); return c < 0 || c >= N || r < 0 || r >= N ? -1 : r * N + c; };
+Kit.pointer(g.cv, {
+up(px, py) {
+for (const b of btns) if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) return b.on();
+const G = geo();
+if (!locked) { const i = cellIn(px, py, G.x, G.y, G.S); if (i >= 0) rotate(i); return; }
+const i = cellIn(px, py, G.tx, G.ty, G.T); if (i >= 0) fire(i);
+},
+});
+addEventListener('keydown', (e) => {
+const d = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -N, ArrowDown: N }[e.key];
+if (!locked) { if (e.key === 's' || e.key === 'S') { myLocal = randFleet(); Kit.sfx('pop'); } else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ready(); } return; }
+if (d) { e.preventDefault(); keyed = true; const n = cursor + d; if (n >= 0 && n < N * N && Math.abs((n % N) - (cursor % N)) <= 1) cursor = n; }
+else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); fire(cursor); }
+});
+function hull(ctx, x, y, q, s, col) {
+const pad = q * 0.14, w = s.d ? q - pad * 2 : s.n * q - pad * 2, h = s.d ? s.n * q - pad * 2 : q - pad * 2;
+const x0 = x + (s.i % N) * q + pad, y0 = y + Math.floor(s.i / N) * q + pad;
+ctx.fillStyle = col; Kit.rr(ctx, x0, y0, w, h, Math.min(w, h) / 2); ctx.fill();
+ctx.fillStyle = 'rgba(255,255,255,.25)'; Kit.rr(ctx, x0 + 2, y0 + 2, s.d ? w * 0.35 : w - 4, s.d ? h - 4 : h * 0.35, Math.min(w, h) / 4); ctx.fill();
+ctx.fillStyle = 'rgba(20,40,50,.45)';
+for (let k = 0; k < s.n; k++) { const cx = x + ((s.i % N) + (s.d ? 0 : k)) * q + q / 2, cy = y + (Math.floor(s.i / N) + (s.d ? k : 0)) * q + q / 2; ctx.beginPath(); ctx.arc(cx, cy, q * 0.09, 0, Math.PI * 2); ctx.fill(); }
+}
+function sonar(ctx, x, y, S) {
+const q = S / N, en = 1 - me, eo = occ(en), cx0 = x + S / 2, cy0 = y + S / 2;
+ctx.save(); ctx.shadowColor = 'rgba(0,30,10,.4)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 6;
+const bg = ctx.createRadialGradient(cx0, cy0, S * 0.05, cx0, cy0, S * 0.75); bg.addColorStop(0, '#0c4a2c'); bg.addColorStop(1, '#03170d');
+ctx.fillStyle = bg; Kit.rr(ctx, x - 6, y - 6, S + 12, S + 12, 20); ctx.fill(); ctx.restore();
+ctx.strokeStyle = 'rgba(90,255,160,.3)'; ctx.lineWidth = 2; Kit.rr(ctx, x - 6, y - 6, S + 12, S + 12, 20); ctx.stroke();
+ctx.save(); Kit.rr(ctx, x - 6, y - 6, S + 12, S + 12, 20); ctx.clip();
+ctx.strokeStyle = 'rgba(90,255,160,.13)'; ctx.lineWidth = 1; ctx.beginPath();
+for (let k = 0; k <= N; k++) { ctx.moveTo(x + k * q, y); ctx.lineTo(x + k * q, y + S); ctx.moveTo(x, y + k * q); ctx.lineTo(x + S, y + k * q); }
+ctx.stroke();
+ctx.strokeStyle = 'rgba(90,255,160,.1)';
+for (const f of [0.18, 0.36, 0.54, 0.72]) { ctx.beginPath(); ctx.arc(cx0, cy0, S * f, 0, Math.PI * 2); ctx.stroke(); }
+if (!Kit.reduceMotion && !over) {
+const a = clock * 1.3;
+for (let k = 0; k < 16; k++) { ctx.fillStyle = `rgba(90,255,160,${0.16 * (1 - k / 16)})`; ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.arc(cx0, cy0, S * 0.75, a - (k + 1) * 0.05, a - k * 0.05); ctx.closePath(); ctx.fill(); }
+}
+if (eo) fleets[en].forEach((s, k) => {
+const sunk = sunkShip(en, k);
+if (!sunk && !over) return;
+const pad = q * 0.1, w = s.d ? q - pad * 2 : s.n * q - pad * 2, h = s.d ? s.n * q - pad * 2 : q - pad * 2;
+ctx.strokeStyle = sunk ? '#ff9b52' : 'rgba(120,255,180,.55)'; ctx.lineWidth = 2; ctx.fillStyle = sunk ? 'rgba(255,120,60,.16)' : 'rgba(120,255,180,.07)';
+Kit.rr(ctx, x + (s.i % N) * q + pad, y + Math.floor(s.i / N) * q + pad, w, h, Math.min(w, h) / 2); ctx.fill(); ctx.stroke();
+});
+for (const i of shots[me]) {
+const cx = x + (i % N) * q + q / 2, cy = y + Math.floor(i / N) * q + q / 2;
+if (!eo) { ctx.strokeStyle = 'rgba(160,255,200,.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, q * (0.22 + (Kit.reduceMotion ? 0 : 0.06 * Math.sin(clock * 5))), 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'rgba(160,255,200,.9)'; ctx.font = `700 ${Math.round(q * 0.36)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', cx, cy + 1); continue; }
+if (eo[i] >= 0) {
+const gl = ctx.createRadialGradient(cx, cy, 1, cx, cy, q * 0.5); gl.addColorStop(0, 'rgba(255,190,90,1)'); gl.addColorStop(0.45, 'rgba(255,110,50,.75)'); gl.addColorStop(1, 'rgba(255,80,40,0)');
+ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, q * 0.5, 0, Math.PI * 2); ctx.fill();
+ctx.fillStyle = '#fff4d8'; ctx.beginPath(); ctx.arc(cx, cy, q * 0.11, 0, Math.PI * 2); ctx.fill();
+} else { ctx.strokeStyle = 'rgba(120,255,170,.45)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, q * 0.2, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'rgba(120,255,170,.6)'; ctx.beginPath(); ctx.arc(cx, cy, q * 0.05, 0, Math.PI * 2); ctx.fill(); }
+}
+for (const p of pings) if (p.s === me) ring(ctx, x, y, q, p);
+if (myTurn() && keyed) { ctx.strokeStyle = '#b8ffd2'; ctx.lineWidth = 2; Kit.rr(ctx, x + (cursor % N) * q + 2, y + Math.floor(cursor / N) * q + 2, q - 4, q - 4, 5); ctx.stroke(); }
+ctx.restore();
+}
+function ring(ctx, x, y, q, p) {
+const t = (clock - p.t) / 0.7; if (t >= 1 || t < 0 || Kit.reduceMotion) return;
+ctx.strokeStyle = `rgba(200,255,220,${1 - t})`; ctx.lineWidth = 2;
+ctx.beginPath(); ctx.arc(x + (p.i % N) * q + q / 2, y + Math.floor(p.i / N) * q + q / 2, q * (0.2 + t * 1.6), 0, Math.PI * 2); ctx.stroke();
+}
+function waters(ctx, x, y, S, fleet, foe) {
+const q = S / N;
+ctx.save(); ctx.shadowColor = 'rgba(0,20,40,.3)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 4;
+const bg = ctx.createLinearGradient(x, y, x, y + S); bg.addColorStop(0, '#16607e'); bg.addColorStop(1, '#0b3a50');
+ctx.fillStyle = bg; Kit.rr(ctx, x - 4, y - 4, S + 8, S + 8, 14); ctx.fill(); ctx.restore();
+ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 1; ctx.beginPath();
+for (let k = 1; k < N; k++) { ctx.moveTo(x + k * q, y); ctx.lineTo(x + k * q, y + S); ctx.moveTo(x, y + k * q); ctx.lineTo(x + S, y + k * q); }
+ctx.stroke();
+const o = occOf(fleet), hit = new Set(foe.filter((i) => o[i] >= 0));
+fleet.forEach((s) => hull(ctx, x, y, q, s, cellsOf(s).every((c) => hit.has(c)) ? '#7a5a55' : '#c3d0d6'));
+for (const i of foe) {
+const cx = x + (i % N) * q + q / 2, cy = y + Math.floor(i / N) * q + q / 2;
+if (o[i] >= 0) { ctx.strokeStyle = '#ff5a3c'; ctx.lineWidth = Math.max(2, q * 0.12); const r = q * 0.22; ctx.beginPath(); ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r); ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r); ctx.stroke(); }
+else { ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.arc(cx, cy, Math.max(1.5, q * 0.1), 0, Math.PI * 2); ctx.fill(); }
+}
+for (const p of pings) if (p.s !== me) ring(ctx, x, y, q, p);
+}
+function button(ctx, x, y, w, h, label, primary, on) {
+ctx.fillStyle = primary ? C.acc : C.line; Kit.rr(ctx, x, y, w, h, h / 2); ctx.fill();
+ctx.fillStyle = primary ? C.on : C.fg; ctx.font = '600 15px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, x + w / 2, y + h / 2 + 1);
+btns.push({ x, y, w, h, on });
+}
+function draw() {
+const { ctx } = g; if (!fleets || !myLocal) return;
+ctx.clearRect(0, 0, g.w, g.h); btns = [];
+const G = geo();
+if (!locked) {
+waters(ctx, G.x, G.y, G.S, myLocal, mode === 'online' ? shots[1 - me] : []);
+const bw = Math.min(150, (G.S - 12) / 2), by = G.y + G.S + 26;
+button(ctx, g.w / 2 - bw - 6, by, bw, 46, '🔀 Shuffle', false, () => { myLocal = randFleet(); Kit.sfx('pop'); Kit.haptic('light'); });
+button(ctx, g.w / 2 + 6, by, bw, 46, 'Ready', true, ready);
+return;
+}
+sonar(ctx, G.tx, G.ty, G.T);
+const mf = fleets[me] || myLocal;
+waters(ctx, G.mx, G.my, G.M, mf, shots[1 - me]);
+ctx.fillStyle = C.sub; ctx.font = '600 12px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+ctx.fillText('YOUR FLEET', G.mx, G.my - 8);
+const px = G.mx + G.M + 18, pw = G.tx + G.T - px;
+if (pw > 70) {
+ctx.fillText('THEIR FLEET', px, G.my - 8);
+const u = Math.min(16, pw / 6), en = 1 - me;
+SIZES.forEach((n, k) => {
+const yy = G.my + k * (u + 12), sunk = fleets[en] && sunkShip(en, k);
+ctx.globalAlpha = sunk ? 0.35 : 1; ctx.fillStyle = sunk ? C.bad : C.acc;
+for (let j = 0; j < n; j++) { Kit.rr(ctx, px + j * (u + 2), yy, u, u, 4); ctx.fill(); }
+ctx.globalAlpha = 1;
+if (sunk) { ctx.strokeStyle = C.bad; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px - 2, yy + u / 2); ctx.lineTo(px + n * (u + 2), yy + u / 2); ctx.stroke(); }
+});
+const ty = G.my + 5 * (u + 12) + 8, h = shots[me].filter((i) => occ(1 - me) && occ(1 - me)[i] >= 0).length;
+ctx.fillStyle = C.fg; ctx.font = '600 13px system-ui,sans-serif'; ctx.textBaseline = 'top';
+if (ty + 34 < G.my + G.M + 10) { ctx.fillText(`Pings ${shots[me].length}`, px, ty); ctx.fillText(`Hits ${h}`, px, ty + 18); }
+}
+}
+Kit.loop((dt) => { clock += dt; if (pings.length && clock - pings[0].t > 1) pings.shift(); draw(); });
+function start(m, saved) {
+clearTimeout(cpuTimer); cpuTimer = 0; mode = m; reset(); hist = []; pending = null; locked = false; myLocal = randFleet();
+me = mode === 'online' ? Kit.online.seat : 0;
+if (mode === 'cpu') {
+fleets[1] = randFleet();
+if (saved && validFleet(saved.f[0]) && validFleet(saved.f[1])) {
+fleets = saved.f; myLocal = fleets[0]; locked = true; occCache = [null, null];
+for (const s of [0, 1]) for (const i of saved.s[s] || []) if (Number.isInteger(i) && i >= 0 && i < N * N && !shots[s].includes(i)) shots[s].push(i);
+turn = shots[0].length > shots[1].length ? 1 : 0;
+if (turn === 1) cpuTimer = setTimeout(cpu, 900);
+}
+}
+Kit.score(mode === 'cpu' ? wins : null); setStatus(); draw();
+}
+function choose() { Kit.pickMode({ emoji: '📡', title: 'Fleet Sonar', text: 'Hide five ships, then take turns pinging the dark water. Sink every ship to win.', modes: ['cpu'], cpuLabel: 'Battle the computer', online: true }, (m) => start(m)); }
+if (Kit.online) { start('online'); Kit.online.onMove(onNet); Kit.load().then((s) => { if (s && s.wins) wins = s.wins; }); }
+else {
+start('cpu');
+Kit.load().then((s) => {
+if (s && s.wins) { wins = s.wins; if (mode === 'cpu') Kit.score(wins); }
+const sg = s && s.game;
+if (sg && Array.isArray(sg.f) && Array.isArray(sg.s) && sg.s[0] && sg.s[0].length) Kit.menu({ emoji: '📡', title: 'Battle in progress', text: 'Pick up where you left off?', buttons: [{ label: 'Resume battle', primary: true, on: () => start('cpu', sg) }, { label: 'New battle', on: () => { Kit.save({ wins }); choose(); } }] });
+else choose();
+});
+}
+draw(); Kit.ready();
+});
+</script></body></html>

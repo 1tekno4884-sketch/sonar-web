@@ -1,0 +1,23 @@
+{
+ "format": 1,
+ "id": "slide",
+ "name": "Slide Pool",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Slide the tiles back into place to rebuild a sunset sea scene. Or switch to numbers for a classic challenge.",
+ "accent": "#7A62D6",
+ "glyph": "🧩",
+ "tags": [
+  "puzzle",
+  "sliding",
+  "classic"
+ ],
+ "score": "low"
+}

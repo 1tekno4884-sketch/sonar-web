@@ -1,0 +1,465 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>Shell Checkers</title><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none}
+:root{--bg:#06202a;--fg:#e8f7fb;--sub:#9cc3cf;--card:#0d3341;--line:#1d4c5c;--acc:#1494B8;--acc2:#6FD3E6;--on:#fff;--good:#3ddc97;--bad:#ff6b6b;--warn:#ffc857}
+#k-app{position:fixed;inset:0;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#k-bar{display:flex;align-items:center;gap:8px;padding:10px 12px 6px;flex:0 0 auto}
+#k-bar .t{font-weight:700;font-size:17px;letter-spacing:.2px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#k-bar .s{font-variant-numeric:tabular-nums;font-weight:700;background:var(--card);border-radius:999px;padding:4px 12px;min-width:44px;text-align:center}
+#k-bar .s:empty{display:none}
+.k-ib{width:38px;height:38px;border-radius:50%;border:0;background:var(--card);color:var(--fg);display:grid;place-items:center;font-size:18px;cursor:pointer;flex:0 0 auto}
+.k-ib:active{transform:scale(.94)}
+#k-status{text-align:center;color:var(--sub);font-size:14px;min-height:20px;padding:0 12px 4px;flex:0 0 auto}
+#k-stage{position:relative;flex:1 1 auto;min-height:0}
+#k-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.k-ov{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);z-index:50;padding:24px;animation:k-f .18s ease-out}
+.k-card{background:var(--card);border-radius:24px;padding:22px 20px 16px;width:min(340px,100%);text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.k-card h2{margin:0 0 6px;font-size:22px}
+.k-card p{margin:0 0 14px;color:var(--sub)}
+.k-card .k-emb{font-size:44px;line-height:1;margin-bottom:8px}
+.k-btn{display:block;width:100%;border:0;border-radius:999px;padding:12px 16px;margin:8px 0 0;font:600 15px system-ui,sans-serif;cursor:pointer;background:var(--line);color:var(--fg)}
+.k-btn.p{background:var(--acc);color:var(--on)}
+.k-btn:active{transform:scale(.98)}
+.k-row{display:flex;gap:8px}.k-row .k-btn{flex:1}
+.k-toast{position:fixed;left:50%;width:max-content;max-width:calc(100vw - 32px);text-align:center;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--card);color:var(--fg);padding:10px 16px;border-radius:999px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.3);animation:k-f .2s ease-out;font-weight:600}
+.k-seg{display:flex;background:var(--line);border-radius:999px;padding:3px;margin:8px 0 0}
+.k-seg button{flex:1;border:0;background:none;color:var(--fg);padding:8px;border-radius:999px;font:600 14px system-ui,sans-serif}
+.k-seg button.on{background:var(--acc);color:var(--on)}
+.k-chip{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--line);font-size:13px;font-weight:600}
+@keyframes k-f{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body><script>
+(function () {
+'use strict';
+const W = window.Wave || {
+version: 1, host: 'dev', ready() {}, info: async () => ({ gameId: 'dev', player: { name: 'You', username: null }, match: null, theme: { dark: !matchMedia('(prefers-color-scheme: light)').matches, accent: '#1494B8' }, reduceMotion: false, locale: navigator.language, best: null }),
+submitScore: async (n) => ({ best: n, isBest: true, rank: null }), saveState: async (d) => { try { localStorage.setItem('k-save', JSON.stringify(d)); } catch (e) {} return true; },
+loadState: async () => { try { return JSON.parse(localStorage.getItem('k-save')); } catch (e) { return null; } }, haptic() {}, exit() { location.reload(); },
+sendMove: async () => ({ seq: 0 }), onMove() {}, endMatch() {}, onPause() {}, onResume() {},
+};
+const $ = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const hex = (h) => { h = h.replace('#', ''); return [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16)); };
+const mix = (a, b, t) => { const x = hex(a), y = hex(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+let ac = null, readySent = false, pauseCbs = [], resumeCbs = [], opts = {}, ovStack = [];
+const K = {
+W, $, mix, paused: false, muted: false, reduceMotion: false, info: null, online: null, colors: {},
+/** Build the page chrome, apply the host theme, then call cb(info). opts: {title, accent, accent2, score:true, dark:{}, light:{}, onRestart, menuExtra:[{label,on}]} */
+async boot(o, cb) {
+opts = o || {};
+try { K.muted = localStorage.getItem('k-mute') === '1'; } catch (e) {}
+let info; try { info = await W.info(); } catch (e) { info = { theme: { dark: true }, player: { name: 'You' }, match: null }; }
+K.info = info; K.reduceMotion = !!info.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dark = info.theme ? info.theme.dark !== false : true;
+const acc = opts.accent || '#1494B8', acc2 = opts.accent2 || mix(acc, '#ffffff', 0.45);
+const base = dark ? { bg: mix(acc, '#000000', 0.86), card: mix(acc, '#000000', 0.72), line: mix(acc, '#000000', 0.55), fg: '#eef8fb', sub: mix(acc, '#ffffff', 0.62) }
+: { bg: mix(acc, '#ffffff', 0.92), card: '#ffffff', line: mix(acc, '#ffffff', 0.74), fg: mix(acc, '#000000', 0.82), sub: mix(acc, '#000000', 0.5) };
+const c = Object.assign(base, dark ? opts.dark : opts.light, { acc, acc2, on: '#ffffff', good: dark ? '#3ddc97' : '#16a36a', bad: dark ? '#ff6b6b' : '#d93c3c', warn: '#f5b83d', dark });
+K.colors = c;
+const r = document.documentElement.style;
+for (const k of ['bg', 'fg', 'sub', 'card', 'line', 'acc', 'acc2', 'on', 'good', 'bad', 'warn']) r.setProperty('--' + k, c[k]);
+document.title = opts.title || 'Game';
+const app = $('div'); app.id = 'k-app';
+const bar = $('div'); bar.id = 'k-bar';
+const back = $('button', 'k-ib', '&#x2715;'); back.setAttribute('aria-label', 'Close'); back.onclick = () => K.exit();
+const t = $('div', 't'); t.textContent = opts.title || '';
+const s = $('div', 's'); s.id = 'k-score';
+const m = $('button', 'k-ib', '&#9776;'); m.setAttribute('aria-label', 'Menu'); m.onclick = () => K.pauseMenu();
+bar.append(back, t, s, m);
+const st = $('div'); st.id = 'k-status';
+const stage = $('div'); stage.id = 'k-stage';
+app.append(bar, st, stage); document.body.append(app);
+K.stage = stage;
+if (info.match) {
+const m = info.match;
+K.online = {
+seat: m.you, players: m.players, id: m.id, over: m.status === 'over', winner: m.winner,
+name: (seat) => (m.players[seat] && (m.players[seat].name || m.players[seat].username)) || (seat === m.you ? 'You' : 'Friend'),
+onMove(cb) { W.onMove(cb); },
+send(mv) { return W.sendMove(mv); },
+end(winner, text) { K.online.over = true; W.endMatch({ winner, text }); },
+};
+}
+W.onPause(() => { K.paused = true; pauseCbs.forEach((f) => f()); });
+W.onResume(() => { K.paused = false; resumeCbs.forEach((f) => f()); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { K.paused = true; pauseCbs.forEach((f) => f()); } });
+cb && cb(info);
+},
+/** Boot options can't see functions declared inside the boot callback: games register them here (Kit.hooks = [fn…]) and the options call Kit.hook(i). */
+hooks: [], hook(i) { const f = K.hooks[i]; if (f) f(); },
+ready() { if (!readySent) { readySent = true; W.ready(); } },
+onPause(f) { pauseCbs.push(f); }, onResume(f) { resumeCbs.push(f); },
+title(t) { document.querySelector('#k-bar .t').textContent = t; },
+status(t) { document.getElementById('k-status').textContent = t == null ? '' : t; },
+score(n) { document.getElementById('k-score').textContent = n == null ? '' : String(n); },
+submit(n) { return W.submitScore(n).catch(() => null); },
+save(d) { return W.saveState(d).catch(() => false); },
+load() { return W.loadState().catch(() => null); },
+haptic(k) { try { W.haptic(k || 'tap'); } catch (e) {} },
+exit() { if (opts.onExit && opts.onExit() === false) return; W.exit(); },
+/** Canvas filling the stage; cv.w/h are CSS px. Calls onResize(w,h) on every size change. */
+canvas(onResize) {
+const cv = $('canvas'); K.stage.append(cv);
+const ctx = cv.getContext('2d'); const o = { cv, ctx, w: 1, h: 1, dpr: 1 };
+const fit = (cb) => {
+const r = K.stage.getBoundingClientRect(); const d = Math.min(3, window.devicePixelRatio || 1);
+o.w = Math.max(1, r.width); o.h = Math.max(1, r.height); o.dpr = d;
+cv.width = Math.round(o.w * d); cv.height = Math.round(o.h * d); ctx.setTransform(d, 0, 0, d, 0, 0);
+cb && onResize && onResize(o.w, o.h);
+};
+fit(false); new ResizeObserver(() => fit(true)).observe(K.stage);   // sizes now; onResize only from the observer (after your setup ran)
+return o;
+},
+/** rAF loop: fn(dt seconds, capped 1/20). Skips frames while paused. Returns stop(). */
+loop(fn) {
+let last = 0, on = true;
+const f = (t) => { if (!on) return; const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t; if (!K.paused) fn(dt, t); requestAnimationFrame(f); };
+requestAnimationFrame(f); return () => { on = false; };
+},
+/** Pointer helper with stage-relative CSS px. h = {down(x,y,e), move(x,y,e), up(x,y,e)} */
+pointer(el, h) {
+let id = null;
+const p = (e) => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+el.addEventListener('pointerdown', (e) => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} K.unlockAudio(); h.down && h.down(...p(e), e); });
+el.addEventListener('pointermove', (e) => { if (e.pointerId === id || (id === null && h.hover)) (id === null ? h.hover : h.move) && (id === null ? h.hover : h.move)(...p(e), e); });
+const end = (e) => { if (e.pointerId !== id) return; id = null; h.up && h.up(...p(e), e); };
+el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+},
+/** Overlay card. o = {emoji, title, text, html, buttons:[{label, primary, on, keep}], dismiss} → close() */
+menu(o) {
+const ov = $('div', 'k-ov'); const card = $('div', 'k-card');
+if (o.emoji) card.append($('div', 'k-emb', o.emoji));
+if (o.title) { const h = $('h2'); h.textContent = o.title; card.append(h); }
+if (o.text) { const p = $('p'); p.textContent = o.text; card.append(p); }
+if (o.html) card.append(typeof o.html === 'string' ? $('div', '', o.html) : o.html);
+const close = () => { ov.remove(); ovStack = ovStack.filter((x) => x !== close); };
+for (const b of o.buttons || []) {
+const e = $('button', 'k-btn' + (b.primary ? ' p' : '')); e.textContent = b.label;
+e.onclick = () => { K.sfx('tap'); if (!b.keep) close(); b.on && b.on(); }; card.append(e);
+}
+if (o.dismiss) ov.onclick = (e) => { if (e.target === ov) close(); };
+ov.append(card); document.body.append(ov); ovStack.push(close); return close;
+},
+closeMenus() { ovStack.slice().forEach((f) => f()); },
+pauseMenu() {
+K.paused = true; pauseCbs.forEach((f) => f());
+const resume = () => { K.paused = false; resumeCbs.forEach((f) => f()); };
+K.menu({ title: 'Paused', buttons: [
+{ label: 'Resume', primary: true, on: resume },
+...(opts.onRestart && !K.online ? [{ label: 'Restart', on: () => { K.paused = false; opts.onRestart(); } }] : []),
+...((opts.menuExtra || []).map((b) => ({ label: b.label, on: () => { K.paused = false; b.on(); } }))),
+{ label: K.muted ? 'Sound: off' : 'Sound: on', on: () => { K.muted = !K.muted; try { localStorage.setItem('k-mute', K.muted ? '1' : '0'); } catch (e) {} resume(); } },
+{ label: 'Exit game', on: () => K.exit() },
+] });
+},
+toast(t, ms) { const e = $('div', 'k-toast'); e.textContent = t; document.body.append(e); setTimeout(() => e.remove(), ms || 1600); },
+unlockAudio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); },
+/** Tiny synthesized sounds: tap pop good bad win lose bounce drop */
+sfx(name) {
+if (K.muted) return; K.unlockAudio(); if (!ac) return;
+const S = { tap: [[660, 0.04, 'sine', 0.08]], pop: [[520, 0.05, 'triangle', 0.12], [880, 0.05, 'triangle', 0.08]], good: [[660, 0.07, 'sine', 0.12], [990, 0.09, 'sine', 0.1]],
+bad: [[220, 0.12, 'sawtooth', 0.07], [160, 0.14, 'sawtooth', 0.06]], win: [[523, 0.1, 'triangle', 0.12], [659, 0.1, 'triangle', 0.12], [784, 0.1, 'triangle', 0.12], [1046, 0.2, 'triangle', 0.12]],
+lose: [[392, 0.14, 'triangle', 0.1], [330, 0.14, 'triangle', 0.1], [262, 0.24, 'triangle', 0.1]], bounce: [[440, 0.03, 'square', 0.05]], drop: [[300, 0.06, 'sine', 0.14], [180, 0.08, 'sine', 0.1]] }[name] || [];
+let t = ac.currentTime;
+for (const [f, d, type, v] of S) {
+const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f;
+g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d + 0.02); t += d * 0.9;
+}
+},
+rand: (a, b) => a + Math.random() * (b - a),
+ri: (a, b) => Math.floor(a + Math.random() * (b - a + 1)),
+shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; },
+rr(ctx, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); },
+/** Standard mode picker for 2-player board games. modes: subset of ['cpu','local'] (online is automatic). */
+pickMode(o, cb) {
+if (K.online) { cb('online'); return; }
+const b = [];
+if (o.modes.includes('cpu')) b.push({ label: o.cpuLabel || 'Play the computer', primary: true, on: () => cb('cpu') });
+if (o.modes.includes('local')) b.push({ label: 'Two players, this phone', primary: !o.modes.includes('cpu'), on: () => cb('local') });
+if (o.online) b.push({ label: 'Challenge a friend online', on: () => K.menu({ emoji: '💬', title: 'Play a friend', text: 'Close the game, tap “Challenge a friend” on its page, then pick a chat. Moves arrive in that chat.', buttons: [{ label: 'OK', primary: true, on: () => K.pickMode(o, cb) }] }) });
+K.menu({ emoji: o.emoji, title: o.title, text: o.text, buttons: b });
+},
+};
+window.Kit = K;
+})();
+</script><script>
+Kit.boot({ title: 'Shell Checkers', accent: '#C98A3E', onRestart: () => Kit.hook(0)}, () => {
+Kit.hooks = [() => start(mode)];
+const C = Kit.colors, mix = Kit.mix;
+const own = (v) => (v - 1) & 1, DRAWN = 80;
+const DIRS = [null, [[-1, -1], [-1, 1]], [[1, -1], [1, 1]], [[-1, -1], [-1, 1], [1, -1], [1, 1]], [[-1, -1], [-1, 1], [1, -1], [1, 1]]];
+let bd, turn, mode, over, result, wins = 0, quiet, legalNow = [], path = [], lastPath = null, anim = null, hist = [], pending = null, cpuTimer = 0, downCell = -1, cursor = 44, cursorShown = false;
+const g = Kit.canvas(draw);
+function jumps(b, p, v, caps, out) {
+const at = p[p.length - 1], r = at >> 3, c = at & 7; let more = false;
+for (const [dr, dc] of DIRS[v]) {
+const r2 = r + 2 * dr, c2 = c + 2 * dc;
+if (r2 < 0 || r2 > 7 || c2 < 0 || c2 > 7) continue;
+const m = (r + dr) * 8 + c + dc, t = r2 * 8 + c2, mv = b[m];
+if (!mv || own(mv) === own(v) || caps.includes(m) || b[t]) continue;
+more = true; p.push(t); caps.push(m);
+if (v <= 2 && r2 === (own(v) ? 7 : 0)) out.push(p.slice()); else jumps(b, p, v, caps, out);
+p.pop(); caps.pop();
+}
+if (!more && p.length > 1) out.push(p.slice());
+}
+function gen(b, side) {
+const caps = [], steps = [];
+for (let i = 0; i < 64; i++) {
+const v = b[i]; if (!v || own(v) !== side) continue;
+b[i] = 0; jumps(b, [i], v, [], caps); b[i] = v;
+if (caps.length) continue;
+const r = i >> 3, c = i & 7;
+for (const [dr, dc] of DIRS[v]) { const r1 = r + dr, c1 = c + dc; if (r1 >= 0 && r1 < 8 && c1 >= 0 && c1 < 8 && !b[r1 * 8 + c1]) steps.push([i, r1 * 8 + c1]); }
+}
+return caps.length ? caps : steps;
+}
+/** Applies a path to board b; returns {caps:[[index,value]], crowned} for undo/animation. */
+function apply(b, p) {
+const v = b[p[0]], caps = []; b[p[0]] = 0;
+for (let k = 1; k < p.length; k++) if (Math.abs((p[k] >> 3) - (p[k - 1] >> 3)) === 2) { const m = (p[k] + p[k - 1]) >> 1; caps.push([m, b[m]]); b[m] = 0; }
+const end = p[p.length - 1], row = end >> 3; let nv = v;
+if (v <= 2 && row === (own(v) ? 7 : 0)) nv = v + 2;
+b[end] = nv; return { v, caps, crowned: nv !== v };
+}
+function undo(b, p, u) { b[p[p.length - 1]] = 0; for (const [m, x] of u.caps) b[m] = x; b[p[0]] = u.v; }
+const same = (a, b2) => a.length === b2.length && a.every((x, i) => x === b2[i]);
+const legal = (mv) => mv && Array.isArray(mv.path) && mv.path.length >= 2 && mv.path.length <= 13 && !over && legalNow.some((m) => same(m, mv.path));
+function evalFor(b, side) {
+let s = 0;
+for (let i = 0; i < 64; i++) {
+const v = b[i]; if (!v) continue;
+const r = i >> 3, c = i & 7, o = own(v);
+let x = v > 2 ? 170 : 100 + (o ? r : 7 - r) * 5 + ((r === (o ? 0 : 7)) ? 8 : 0);
+if (c >= 2 && c <= 5 && r >= 2 && r <= 5) x += 6;
+s += o === side ? x : -x;
+}
+return s;
+}
+let deadline = 0, nodes = 0;
+function ab(b, side, depth, a, beta) {
+if ((++nodes & 1023) === 0 && Date.now() > deadline) throw 0;
+const ms = gen(b, side);
+if (!ms.length) return -100000 - depth;
+if (depth <= 0 && ms[0].length === 2 && Math.abs((ms[0][1] >> 3) - (ms[0][0] >> 3)) === 1) return evalFor(b, side);
+if (depth <= -4) return evalFor(b, side);
+let best = -1e9;
+for (const m of ms) {
+const u = apply(b, m); const v = -ab(b, 1 - side, depth - 1, -beta, -a); undo(b, m, u);
+if (v > best) best = v;
+if (v > a) a = v;
+if (a >= beta) break;
+}
+return best;
+}
+function cpu() {
+cpuTimer = 0;
+if (over || mode !== 'cpu' || turn !== 1) return;
+const ms = Kit.shuffle(legalNow.slice()); let pick = ms[0];
+if (ms.length > 1) {
+const b = bd.slice(); deadline = Date.now() + 450; nodes = 0;
+try {
+for (let d = 1; d <= 9; d++) {
+let best = -1e12, bm = pick;
+for (const m of ms) { const u = apply(b, m); const v = -ab(b, 0, d - 1, -1e9, 1e9) + Math.random() * 4; undo(b, m, u); if (v > best) { best = v; bm = m; } }
+pick = bm; ms.splice(ms.indexOf(bm), 1); ms.unshift(bm);
+}
+} catch (e) { if (e !== 0) throw e; }
+}
+play(pick, false, 0);
+}
+function reset() {
+bd = Array(64).fill(0);
+for (let i = 0; i < 64; i++) if (((i >> 3) + (i & 7)) & 1) { if (i < 24) bd[i] = 2; else if (i >= 40) bd[i] = 1; }
+turn = 0; over = false; result = null; quiet = 0; path = []; lastPath = null; anim = null; legalNow = gen(bd, 0);
+}
+function play(p, silent, fromSeg) {
+const u = apply(bd, p);
+lastPath = p.slice(); path = [];
+quiet = u.caps.length || u.crowned ? 0 : quiet + 1;
+turn = 1 - turn; legalNow = gen(bd, turn);
+if (!legalNow.length) { over = true; result = { p: 1 - turn }; }
+else if (quiet >= DRAWN) { over = true; result = { p: null }; }
+anim = silent || Kit.reduceMotion ? null : { p, v: u.crowned ? u.v : bd[p[p.length - 1]], caps: u.caps, seg: fromSeg, t: 0, crowned: u.crowned };
+if (!silent) { Kit.sfx(u.caps.length ? 'pop' : 'tap'); Kit.haptic(u.caps.length ? 'medium' : 'light'); }
+if (!anim) landed(silent);
+}
+function landed(silent) {
+if (over) return finish(silent);
+setStatus();
+if (mode === 'cpu' && turn === 1 && !cpuTimer) cpuTimer = setTimeout(cpu, 300);
+}
+const name = (p) => mode === 'online' ? (p === Kit.online.seat ? 'You' : Kit.online.name(p)) : mode === 'cpu' ? (p === 0 ? 'You' : 'Computer') : (p === 0 ? 'Coral' : 'Blue');
+function setStatus() {
+if (over) return;
+const must = legalNow.length && legalNow[0].length > 2 || (legalNow[0] && Math.abs((legalNow[0][1] >> 3) - (legalNow[0][0] >> 3)) === 2);
+const tail = must ? ' — capture!' : '';
+if (mode === 'online') Kit.status(pending ? 'Sending…' : turn === Kit.online.seat ? 'Your turn' + tail : `Waiting for ${name(turn)}…`);
+else if (mode === 'cpu') Kit.status(turn === 0 ? 'Your turn (coral)' + tail : 'Computer is thinking…');
+else Kit.status(`${name(turn)} to move` + tail);
+}
+function finish(silent) {
+const w = result; let title, emoji;
+if (w.p === null) { title = 'Draw — the tide turns'; emoji = '🌊'; }
+else { const n = name(w.p); title = n === 'You' ? 'You win!' : `${n} wins!`; emoji = w.p === 0 ? '🐚' : '🦪'; }
+Kit.status(title);
+if (mode === 'cpu') {
+if (w.p === 0) { wins++; Kit.submit(wins); Kit.sfx('win'); Kit.haptic('success'); }
+else if (w.p === 1) { wins = 0; Kit.sfx('lose'); Kit.haptic('error'); }
+Kit.score(wins); Kit.save({ wins });
+} else if (!silent) Kit.sfx('win');
+if (mode === 'online') { maybeEnd(); setTimeout(() => { if (over) Kit.menu({ emoji, title, buttons: [{ label: 'Back to chat', primary: true, on: () => Kit.exit() }, { label: 'Look at the board' }] }); }, 900); }
+else setTimeout(() => Kit.menu({ emoji, title, text: mode === 'cpu' ? `Win streak: ${wins}` : '', buttons: [{ label: 'Play again', primary: true, on: () => start(mode) }, { label: 'Change mode', on: choose }] }), 900);
+}
+function maybeEnd() {
+if (mode !== 'online' || !over || pending || Kit.online.over) return;
+const w = result.p; Kit.online.end(w, w === null ? 'Draw' : `${Kit.online.name(w)} wins`);
+}
+function rebuild() { Kit.closeMenus(); reset(); for (const m of hist) play(m.path, true, 0); setStatus(); }
+function onNet(mv, meta) {
+if (pending) {
+if (!meta.mine && meta.seat === turn && legal(mv)) { hist.push(pending); pending = null; }
+else { pending = null; rebuild(); }
+}
+if (meta.seat !== turn || !legal(mv)) return;
+const p = mv.path.slice(); hist.push({ path: p }); play(p, !!meta.replay, 0); maybeEnd();
+}
+function commit(p) {
+const seg = Math.max(0, p.length - 2);
+if (mode !== 'online') return play(p, false, seg);
+const mv = { path: p.slice() }; pending = mv; play(p, false, seg); setStatus();
+Kit.online.send(mv).then(() => { if (pending === mv) { hist.push(mv); pending = null; setStatus(); maybeEnd(); } })
+.catch((e) => { if (pending === mv) { pending = null; rebuild(); Kit.toast(e && e.code === 'conflict' ? 'Your friend moved first' : 'Move not sent — try again'); } });
+}
+const myTurn = () => !over && !anim && (mode === 'local' || (mode === 'cpu' && turn === 0) || (mode === 'online' && turn === Kit.online.seat && !pending));
+const cands = () => legalNow.filter((m) => path.every((x, k) => m[k] === x));
+const targets = () => path.length ? [...new Set(cands().filter((m) => m.length > path.length).map((m) => m[path.length]))] : [];
+function handle(i) {
+if (i < 0) return;
+if (!myTurn()) { if (mode === 'online' && !over && turn !== Kit.online.seat) Kit.toast('Not your turn yet'); return; }
+if (path.length && targets().includes(i)) {
+path.push(i); Kit.sfx('tap');
+const cs = cands();
+if (cs.length && cs[0].length === path.length) commit(path.slice());
+return;
+}
+if (path.length > 1 && i === path[path.length - 1]) return;
+const v = bd[i];
+if (v && own(v) === turn) {
+if (legalNow.some((m) => m[0] === i)) { path = [i]; cursor = i; Kit.haptic('tap'); }
+else { path = []; Kit.toast(legalNow[0] && Math.abs((legalNow[0][1] >> 3) - (legalNow[0][0] >> 3)) === 2 ? 'A capture is waiting — you must jump' : 'That shell is stuck'); }
+} else path = [];
+}
+const flip = () => mode === 'online' && Kit.online.seat === 1;
+function geo() {
+const s = Math.min(g.w - 28, g.h - 110, 560), q = s / 8;
+return { s, q, x: (g.w - s) / 2, y: (g.h - s) / 2 + 22 };
+}
+function cellAt(px, py) {
+const { q, x, y } = geo(); const c = Math.floor((px - x) / q), r = Math.floor((py - y) / q);
+if (c < 0 || c > 7 || r < 0 || r > 7) return -1;
+const i = r * 8 + c; return flip() ? 63 - i : i;
+}
+Kit.pointer(g.cv, {
+down(px, py) { downCell = cellAt(px, py); handle(downCell); },
+up(px, py) { const i = cellAt(px, py); if (i >= 0 && i !== downCell && path.length) handle(i); downCell = -1; },
+});
+addEventListener('keydown', (e) => {
+const d = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -8, ArrowDown: 8 }[e.key] * (flip() ? -1 : 1);
+if (d) { e.preventDefault(); const n = cursor + d; if (n >= 0 && n < 64 && Math.abs((n & 7) - (cursor & 7)) <= 1) cursor = n; }
+else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); handle(cursor); }
+else if (e.key === 'Escape') path = [];
+});
+function shell(ctx, cx, cy, r, v, alpha) {
+const o = own(v), base = o ? '#3f73a6' : '#ff8a6b', deep = o ? '#244b73' : '#d3573c', hi = o ? '#8fc0ea' : '#ffd2bf';
+ctx.globalAlpha = alpha;
+ctx.fillStyle = 'rgba(40,25,5,.28)'; ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.16, r, r * 0.95, 0, 0, Math.PI * 2); ctx.fill();
+const gr = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.1, cx, cy, r);
+gr.addColorStop(0, hi); gr.addColorStop(0.6, base); gr.addColorStop(1, deep);
+ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+ctx.strokeStyle = deep; ctx.lineWidth = Math.max(1, r * 0.07); ctx.globalAlpha = alpha * 0.6;
+for (let k = -3; k <= 3; k++) { const a = Math.PI / 2 + k * 0.36; ctx.beginPath(); ctx.moveTo(cx, cy + r * 0.55); ctx.lineTo(cx - Math.cos(a) * r * 0.86, cy + r * 0.55 - Math.sin(a) * r * 1.3); ctx.stroke(); }
+ctx.globalAlpha = alpha;
+if (v > 2) {
+ctx.fillStyle = '#ffd447'; ctx.strokeStyle = '#8a5a00'; ctx.lineWidth = Math.max(1.2, r * 0.08);
+const w = r * 0.62, h = r * 0.42, y0 = cy - h * 0.2;
+ctx.beginPath(); ctx.moveTo(cx - w, y0 + h); ctx.lineTo(cx - w, y0 - h * 0.3); ctx.lineTo(cx - w * 0.5, y0 + h * 0.25); ctx.lineTo(cx, y0 - h * 0.75); ctx.lineTo(cx + w * 0.5, y0 + h * 0.25); ctx.lineTo(cx + w, y0 - h * 0.3); ctx.lineTo(cx + w, y0 + h); ctx.closePath(); ctx.fill(); ctx.stroke();
+}
+ctx.globalAlpha = 1;
+}
+function draw() {
+const { ctx } = g; if (!bd) return;
+ctx.clearRect(0, 0, g.w, g.h);
+const { s, q, x, y } = geo(), fl = flip();
+const pos = (i) => { const j = fl ? 63 - i : i; return [x + (j & 7) * q + q / 2, y + (j >> 3) * q + q / 2]; };
+const cnt = [0, 0]; for (const v of bd) if (v) cnt[own(v)]++;
+const cw = Math.min(170, s / 2 - 6), chy = y - 58;
+for (const p of [0, 1]) {
+const top = fl ? p === 0 : p === 1, chx = top ? x : x + s - cw, on = !over && turn === p;
+ctx.fillStyle = C.card; Kit.rr(ctx, chx, chy, cw, 38, 19); ctx.fill();
+if (on) { ctx.strokeStyle = C.acc; ctx.lineWidth = 2.5; Kit.rr(ctx, chx + 1, chy + 1, cw - 2, 36, 18); ctx.stroke(); }
+shell(ctx, chx + 20, chy + 19, 11, p + 1, 1);
+ctx.fillStyle = on ? C.fg : C.sub; ctx.font = '600 14px system-ui,sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+let n = name(p); if (n.length > 11) n = n.slice(0, 10) + '…'; ctx.fillText(n, chx + 38, chy + 20);
+ctx.textAlign = 'right'; ctx.fillText(String(cnt[p]), chx + cw - 14, chy + 20);
+}
+ctx.save(); ctx.shadowColor = 'rgba(60,35,5,.35)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 6;
+ctx.fillStyle = C.dark ? '#5e4428' : '#9a7448'; Kit.rr(ctx, x - 10, y - 10, s + 20, s + 20, 18); ctx.fill(); ctx.restore();
+const light = C.dark ? '#d9c39a' : '#f5e6c4', darkSq = C.dark ? '#9b7a4b' : '#cfa56c';
+ctx.save(); Kit.rr(ctx, x, y, s, s, 8); ctx.clip();
+for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+ctx.fillStyle = (r + c) & 1 ? darkSq : light; ctx.fillRect(x + c * q, y + r * q, q + 0.5, q + 0.5);
+ctx.fillStyle = 'rgba(80,50,10,.10)';
+for (let k = 0; k < 4; k++) { const h = ((r * 8 + c) * 7919 + k * 104729) % 997; ctx.fillRect(x + c * q + (h % 31) / 31 * q, y + r * q + (h % 17) / 17 * q, 2, 2); }
+}
+ctx.restore();
+if (lastPath) { ctx.fillStyle = 'rgba(255,255,255,.18)'; for (const i of lastPath) { const [cx, cy] = pos(i); ctx.fillRect(cx - q / 2, cy - q / 2, q, q); } }
+const mine = myTurn();
+if (mine && !path.length) {   // movable pieces
+ctx.strokeStyle = C.dark ? 'rgba(255,255,255,.55)' : 'rgba(60,35,5,.45)'; ctx.lineWidth = 2;
+for (const i of new Set(legalNow.map((m) => m[0]))) { const [cx, cy] = pos(i); ctx.beginPath(); ctx.arc(cx, cy, q * 0.45, 0, Math.PI * 2); ctx.stroke(); }
+}
+const hidden = new Set(), ghost = new Set();
+if (path.length) { hidden.add(path[0]); for (let k = 1; k < path.length; k++) if (Math.abs((path[k] >> 3) - (path[k - 1] >> 3)) === 2) ghost.add((path[k] + path[k - 1]) >> 1); }
+if (anim) hidden.add(anim.p[anim.p.length - 1]);
+for (let i = 0; i < 64; i++) if (bd[i] && !hidden.has(i)) { const [cx, cy] = pos(i); shell(ctx, cx, cy, q * 0.38, bd[i], ghost.has(i) ? 0.35 : 1); }
+if (anim) {
+const a = anim, k = Math.min(a.seg, a.p.length - 2), t = a.t, [x1, y1] = pos(a.p[k]), [x2, y2] = pos(a.p[k + 1]);
+for (const [m, v] of a.caps) {
+const capSeg = a.p.findIndex((z, j) => j > 0 && ((z + a.p[j - 1]) >> 1) === m && Math.abs((z >> 3) - (a.p[j - 1] >> 3)) === 2) - 1;
+if (capSeg > k || (capSeg === k && t < 1)) { const [cx, cy] = pos(m); shell(ctx, cx, cy, q * 0.38, v, capSeg === k ? 1 - t : 1); }
+}
+const lift = Math.sin(t * Math.PI) * q * 0.25;
+shell(ctx, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t - lift, q * 0.38 * (1 + lift / q * 0.4), a.v, 1);
+}
+if (path.length) {
+const [cx, cy] = pos(path[path.length - 1]);
+shell(ctx, cx, cy, q * 0.4, bd[path[0]], 1);
+ctx.strokeStyle = C.acc; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, q * 0.46, 0, Math.PI * 2); ctx.stroke();
+ctx.fillStyle = C.acc; ctx.globalAlpha = 0.75;
+for (const t of targets()) { const [tx, ty] = pos(t); ctx.beginPath(); ctx.arc(tx, ty, q * 0.15, 0, Math.PI * 2); ctx.fill(); }
+ctx.globalAlpha = 1;
+}
+if (mine && downCell < 0 && cursorShown) { const [cx, cy] = pos(cursor); ctx.strokeStyle = C.acc2; ctx.lineWidth = 2; ctx.strokeRect(cx - q / 2 + 2, cy - q / 2 + 2, q - 4, q - 4); }
+}
+addEventListener('keydown', () => { cursorShown = true; });
+Kit.loop((dt) => {
+if (anim) {
+anim.t += dt / 0.17;
+if (anim.t >= 1) {
+if (anim.seg < anim.p.length - 2) { anim.seg++; anim.t = 0; if (anim.caps.length) Kit.sfx('bounce'); }
+else { const cr = anim.crowned; anim = null; if (cr) { Kit.sfx('good'); } landed(false); }
+}
+}
+draw();
+});
+function start(m) {
+clearTimeout(cpuTimer); cpuTimer = 0; mode = m; reset(); hist = []; pending = null;
+Kit.score(mode === 'cpu' ? wins : null); setStatus(); draw();
+}
+function choose() { Kit.pickMode({ emoji: '🐚', title: 'Shell Checkers', text: 'Jump diagonally to capture — captures are a must. Reach the far side to be crowned.', modes: ['cpu', 'local'], online: true }, start); }
+Kit.load().then((s) => { if (s && s.wins) { wins = s.wins; if (mode === 'cpu') Kit.score(wins); } });
+if (Kit.online) { start('online'); Kit.online.onMove(onNet); }
+else { start('cpu'); choose(); }
+draw(); Kit.ready();
+});
+</script></body></html>

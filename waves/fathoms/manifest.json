@@ -1,0 +1,24 @@
+{
+ "format": 1,
+ "id": "fathoms",
+ "name": "Four Fathoms",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "2-online",
+ "modes": [
+  "cpu",
+  "local",
+  "online"
+ ],
+ "description": "Drop pearls into the deep. Line up four — across, down or diagonal — before your rival does.",
+ "accent": "#3B5BDB",
+ "glyph": "🦪",
+ "tags": [
+  "board",
+  "classic"
+ ],
+ "score": "high"
+}

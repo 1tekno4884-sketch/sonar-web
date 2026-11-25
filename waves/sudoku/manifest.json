@@ -1,0 +1,23 @@
+{
+ "format": 1,
+ "id": "sudoku",
+ "name": "Sudoku Sands",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Fresh number puzzles on warm beach sand, each with one true answer. Notes, hints and undo included.",
+ "accent": "#C2873A",
+ "glyph": "🔢",
+ "tags": [
+  "puzzle",
+  "logic",
+  "numbers"
+ ],
+ "score": "low"
+}

@@ -1,0 +1,24 @@
+{
+ "format": 1,
+ "id": "tidetac",
+ "name": "Tide Tac",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "2-online",
+ "modes": [
+  "cpu",
+  "local",
+  "online"
+ ],
+ "description": "Shells versus starfish on a sandy 3×3. Three in a row takes the tide.",
+ "accent": "#1494B8",
+ "glyph": "⭕",
+ "tags": [
+  "board",
+  "classic"
+ ],
+ "score": "high"
+}

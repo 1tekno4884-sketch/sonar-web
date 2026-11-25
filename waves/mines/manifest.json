@@ -1,0 +1,23 @@
+{
+ "format": 1,
+ "id": "mines",
+ "name": "Sea Mines",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Sweep the bay with number clues and flag every hidden mine. Your first tap is always safe.",
+ "accent": "#3D6DB3",
+ "glyph": "💣",
+ "tags": [
+  "puzzle",
+  "logic",
+  "classic"
+ ],
+ "score": "low"
+}

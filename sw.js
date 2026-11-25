@@ -1,13 +1,15 @@
 // Sonar web service worker — caches the app shell only (HTML, CSS, JS, fonts, icons) so the app opens fast and
 // installs as a PWA. It never stores messages, media or API responses: those are on another origin and pass through.
-const VERSION = "sonar-shell-v5";
+const VERSION = "sonar-shell-v7";   // U3 merge: v6 (U3-social) → v7 for U3-custom js/u3.js + U3-games games.html/waves
 const SHELL = [
   "./", "index.html", "style.css", "calls.css", "identity.css", "config.js", "manifest.webmanifest",
   "js/app.js", "js/api.js", "js/dom.js", "js/state.js", "js/settings.js", "js/wallpaper.js", "js/line.js", "js/notify.js",
   "js/layout.js", "js/auth.js", "js/chats.js", "js/messages.js", "js/composer.js", "js/media.js", "js/emoji.js",
-  "js/people.js", "js/settingsui.js", "js/calls.js", "js/channels.js", "js/custom.js",   // U2-custom
+  "js/people.js", "js/settingsui.js", "js/calls.js", "js/channels.js", "js/custom.js", "js/u3.js",   // U2-custom, U3-custom
   "js/identity.js", // U2-identity
   "js/u2dev.js",   // U2-dev
+  "js/u3map.js", "js/u3social.js",   // U3-social
+  "games.html", "waves/games-web.js", "waves/bridge.js", "waves/index.json",   // U3-games (each game page is cached on first play)
   "fonts/inter.ttf", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png",
 ];
 

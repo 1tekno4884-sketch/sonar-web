@@ -1,0 +1,22 @@
+{
+ "format": 1,
+ "id": "runner",
+ "name": "Wave Rider",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Surf an endless wave! Tap to hop, hold to fly higher, dodge rocks and jellyfish, and scoop up shells.",
+ "accent": "#FF8A4C",
+ "glyph": "🏄",
+ "tags": [
+  "arcade",
+  "runner"
+ ],
+ "score": "high"
+}

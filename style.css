@@ -470,3 +470,15 @@ button.linkish:hover { text-decoration: underline; }
 :root[data-u2recv="leaf"] .msg:not(.mine) .bubble:not(.bare) { border-radius: 4px 26px 4px 26px; }
 :root[data-u2sent="drop"] .msg.mine .bubble:not(.bare) { border-bottom-right-radius: 0; }
 :root[data-u2recv="drop"] .msg:not(.mine) .bubble:not(.bare) { border-bottom-left-radius: 0; }
+
+/* ── U3-custom: shared look options (js/u3.js) ── */
+:root { --avatar-r: 50%; --head-scale: 1; --body-scale: 1; --weight-shift: 0; --tracking: 0em; --u3-canvas: none; }
+.avatar { border-radius: var(--avatar-r); }
+:root[data-avatar="hexagon"] .avatar { border-radius: 0; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); }
+:root[data-avatar="diamond"] .avatar { border-radius: 18%; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+:root[data-corners="sharp"] { --r: 4px; }
+:root[data-corners="squircle"] { --r: 26px; }
+:root[data-corners="cut"] .card { border-radius: 0; clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px); }
+h1, h2, h3 { font-size: calc(1em * var(--head-scale)); }
+body { letter-spacing: var(--tracking); font-size: calc(100% * var(--body-scale)); font-weight: calc(400 + var(--weight-shift)); }
+:root.u3-canvas body { background: var(--u3-canvas) fixed; }

@@ -1,0 +1,23 @@
+{
+ "format": 1,
+ "id": "merge",
+ "name": "Pearl Merge",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Swipe the lagoon to bump matching shells together. They grow into pearls, from grain of sand to sea crown.",
+ "accent": "#D9667F",
+ "glyph": "🦪",
+ "tags": [
+  "puzzle",
+  "numbers",
+  "swipe"
+ ],
+ "score": "high"
+}

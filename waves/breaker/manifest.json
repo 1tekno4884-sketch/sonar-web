@@ -1,0 +1,22 @@
+{
+ "format": 1,
+ "id": "breaker",
+ "name": "Coral Breaker",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Slide your paddle, bounce the pearl and smash through reefs of coral. Grab power-ups, clear every level.",
+ "accent": "#F0716A",
+ "glyph": "🧱",
+ "tags": [
+  "arcade",
+  "classic"
+ ],
+ "score": "high"
+}

@@ -1,0 +1,24 @@
+{
+ "format": 1,
+ "id": "fleet",
+ "name": "Fleet Sonar",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "2-online",
+ "modes": [
+  "cpu",
+  "online"
+ ],
+ "description": "Hide your fleet, then ping the dark water to find theirs. Sink all five ships before they sink yours.",
+ "accent": "#2FB86A",
+ "glyph": "📡",
+ "tags": [
+  "board",
+  "classic",
+  "strategy"
+ ],
+ "score": "high"
+}

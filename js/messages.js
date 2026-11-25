@@ -6,6 +6,7 @@ import { voicePlayer } from "./media.js";
 import { RIPPLE_WEB_URL } from "../config.js";
 import { richText } from "./custom.js";   // U2-custom: Tidewrite rich text
 import { flairAvatar, flairName, ribbonsHtml, hasOwnerBubble } from "./identity.js";   // U2-identity
+import { u3Content } from "./u3social.js";   // U3-social: Whisper + Lantern
 
 const GAMES = { ttt: "Tic-tac-toe", c4: "Connect four", word: "Word guess", rps: "Rock paper scissors", trivia: "Trivia duel" };
 const HIDE_TEXT = { sticker: true, poll: true, game: true, ping: true, call: true };
@@ -96,6 +97,7 @@ function content(m, ctx) {
   const x = m.x || {};
   const out = [];
   if (m.deleted) return [h("div", { class: "txt" }, "This message was deleted")];
+  const u3 = u3Content(m, ctx); if (u3) return u3;   // U3-social: Whisper (hold to read) / Lantern card
   if (x.mediaCleared || m.gone) out.push(h("div", { class: "meta", style: "color:inherit;opacity:.75" }, m.gone ? "🌊 Opened" : "Media expired"));
   const t = m.type;
   if ((t === "snap" || x.viewOnce) && !m.gone) {

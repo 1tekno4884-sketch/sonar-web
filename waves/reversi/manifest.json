@@ -1,0 +1,25 @@
+{
+ "format": 1,
+ "id": "reversi",
+ "name": "Flip Reef",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "2-online",
+ "modes": [
+  "cpu",
+  "local",
+  "online"
+ ],
+ "description": "Trap your rival's discs between yours to flip the reef your colour. Most discs at the end wins.",
+ "accent": "#E8676B",
+ "glyph": "🪸",
+ "tags": [
+  "board",
+  "classic",
+  "strategy"
+ ],
+ "score": "high"
+}

@@ -1,0 +1,23 @@
+{
+ "format": 1,
+ "id": "echo",
+ "name": "Echo Shells",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Four singing shells hum a growing tune. Listen, then echo it back. How long can you go?",
+ "accent": "#8E5BD9",
+ "glyph": "🐚",
+ "tags": [
+  "memory",
+  "music",
+  "classic"
+ ],
+ "score": "high"
+}

@@ -1,0 +1,360 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>Wave Rider</title><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none}
+:root{--bg:#06202a;--fg:#e8f7fb;--sub:#9cc3cf;--card:#0d3341;--line:#1d4c5c;--acc:#1494B8;--acc2:#6FD3E6;--on:#fff;--good:#3ddc97;--bad:#ff6b6b;--warn:#ffc857}
+#k-app{position:fixed;inset:0;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#k-bar{display:flex;align-items:center;gap:8px;padding:10px 12px 6px;flex:0 0 auto}
+#k-bar .t{font-weight:700;font-size:17px;letter-spacing:.2px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#k-bar .s{font-variant-numeric:tabular-nums;font-weight:700;background:var(--card);border-radius:999px;padding:4px 12px;min-width:44px;text-align:center}
+#k-bar .s:empty{display:none}
+.k-ib{width:38px;height:38px;border-radius:50%;border:0;background:var(--card);color:var(--fg);display:grid;place-items:center;font-size:18px;cursor:pointer;flex:0 0 auto}
+.k-ib:active{transform:scale(.94)}
+#k-status{text-align:center;color:var(--sub);font-size:14px;min-height:20px;padding:0 12px 4px;flex:0 0 auto}
+#k-stage{position:relative;flex:1 1 auto;min-height:0}
+#k-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.k-ov{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);z-index:50;padding:24px;animation:k-f .18s ease-out}
+.k-card{background:var(--card);border-radius:24px;padding:22px 20px 16px;width:min(340px,100%);text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.k-card h2{margin:0 0 6px;font-size:22px}
+.k-card p{margin:0 0 14px;color:var(--sub)}
+.k-card .k-emb{font-size:44px;line-height:1;margin-bottom:8px}
+.k-btn{display:block;width:100%;border:0;border-radius:999px;padding:12px 16px;margin:8px 0 0;font:600 15px system-ui,sans-serif;cursor:pointer;background:var(--line);color:var(--fg)}
+.k-btn.p{background:var(--acc);color:var(--on)}
+.k-btn:active{transform:scale(.98)}
+.k-row{display:flex;gap:8px}.k-row .k-btn{flex:1}
+.k-toast{position:fixed;left:50%;width:max-content;max-width:calc(100vw - 32px);text-align:center;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--card);color:var(--fg);padding:10px 16px;border-radius:999px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.3);animation:k-f .2s ease-out;font-weight:600}
+.k-seg{display:flex;background:var(--line);border-radius:999px;padding:3px;margin:8px 0 0}
+.k-seg button{flex:1;border:0;background:none;color:var(--fg);padding:8px;border-radius:999px;font:600 14px system-ui,sans-serif}
+.k-seg button.on{background:var(--acc);color:var(--on)}
+.k-chip{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--line);font-size:13px;font-weight:600}
+@keyframes k-f{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body><script>
+(function () {
+'use strict';
+const W = window.Wave || {
+version: 1, host: 'dev', ready() {}, info: async () => ({ gameId: 'dev', player: { name: 'You', username: null }, match: null, theme: { dark: !matchMedia('(prefers-color-scheme: light)').matches, accent: '#1494B8' }, reduceMotion: false, locale: navigator.language, best: null }),
+submitScore: async (n) => ({ best: n, isBest: true, rank: null }), saveState: async (d) => { try { localStorage.setItem('k-save', JSON.stringify(d)); } catch (e) {} return true; },
+loadState: async () => { try { return JSON.parse(localStorage.getItem('k-save')); } catch (e) { return null; } }, haptic() {}, exit() { location.reload(); },
+sendMove: async () => ({ seq: 0 }), onMove() {}, endMatch() {}, onPause() {}, onResume() {},
+};
+const $ = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const hex = (h) => { h = h.replace('#', ''); return [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16)); };
+const mix = (a, b, t) => { const x = hex(a), y = hex(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+let ac = null, readySent = false, pauseCbs = [], resumeCbs = [], opts = {}, ovStack = [];
+const K = {
+W, $, mix, paused: false, muted: false, reduceMotion: false, info: null, online: null, colors: {},
+/** Build the page chrome, apply the host theme, then call cb(info). opts: {title, accent, accent2, score:true, dark:{}, light:{}, onRestart, menuExtra:[{label,on}]} */
+async boot(o, cb) {
+opts = o || {};
+try { K.muted = localStorage.getItem('k-mute') === '1'; } catch (e) {}
+let info; try { info = await W.info(); } catch (e) { info = { theme: { dark: true }, player: { name: 'You' }, match: null }; }
+K.info = info; K.reduceMotion = !!info.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dark = info.theme ? info.theme.dark !== false : true;
+const acc = opts.accent || '#1494B8', acc2 = opts.accent2 || mix(acc, '#ffffff', 0.45);
+const base = dark ? { bg: mix(acc, '#000000', 0.86), card: mix(acc, '#000000', 0.72), line: mix(acc, '#000000', 0.55), fg: '#eef8fb', sub: mix(acc, '#ffffff', 0.62) }
+: { bg: mix(acc, '#ffffff', 0.92), card: '#ffffff', line: mix(acc, '#ffffff', 0.74), fg: mix(acc, '#000000', 0.82), sub: mix(acc, '#000000', 0.5) };
+const c = Object.assign(base, dark ? opts.dark : opts.light, { acc, acc2, on: '#ffffff', good: dark ? '#3ddc97' : '#16a36a', bad: dark ? '#ff6b6b' : '#d93c3c', warn: '#f5b83d', dark });
+K.colors = c;
+const r = document.documentElement.style;
+for (const k of ['bg', 'fg', 'sub', 'card', 'line', 'acc', 'acc2', 'on', 'good', 'bad', 'warn']) r.setProperty('--' + k, c[k]);
+document.title = opts.title || 'Game';
+const app = $('div'); app.id = 'k-app';
+const bar = $('div'); bar.id = 'k-bar';
+const back = $('button', 'k-ib', '&#x2715;'); back.setAttribute('aria-label', 'Close'); back.onclick = () => K.exit();
+const t = $('div', 't'); t.textContent = opts.title || '';
+const s = $('div', 's'); s.id = 'k-score';
+const m = $('button', 'k-ib', '&#9776;'); m.setAttribute('aria-label', 'Menu'); m.onclick = () => K.pauseMenu();
+bar.append(back, t, s, m);
+const st = $('div'); st.id = 'k-status';
+const stage = $('div'); stage.id = 'k-stage';
+app.append(bar, st, stage); document.body.append(app);
+K.stage = stage;
+if (info.match) {
+const m = info.match;
+K.online = {
+seat: m.you, players: m.players, id: m.id, over: m.status === 'over', winner: m.winner,
+name: (seat) => (m.players[seat] && (m.players[seat].name || m.players[seat].username)) || (seat === m.you ? 'You' : 'Friend'),
+onMove(cb) { W.onMove(cb); },
+send(mv) { return W.sendMove(mv); },
+end(winner, text) { K.online.over = true; W.endMatch({ winner, text }); },
+};
+}
+W.onPause(() => { K.paused = true; pauseCbs.forEach((f) => f()); });
+W.onResume(() => { K.paused = false; resumeCbs.forEach((f) => f()); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { K.paused = true; pauseCbs.forEach((f) => f()); } });
+cb && cb(info);
+},
+/** Boot options can't see functions declared inside the boot callback: games register them here (Kit.hooks = [fn…]) and the options call Kit.hook(i). */
+hooks: [], hook(i) { const f = K.hooks[i]; if (f) f(); },
+ready() { if (!readySent) { readySent = true; W.ready(); } },
+onPause(f) { pauseCbs.push(f); }, onResume(f) { resumeCbs.push(f); },
+title(t) { document.querySelector('#k-bar .t').textContent = t; },
+status(t) { document.getElementById('k-status').textContent = t == null ? '' : t; },
+score(n) { document.getElementById('k-score').textContent = n == null ? '' : String(n); },
+submit(n) { return W.submitScore(n).catch(() => null); },
+save(d) { return W.saveState(d).catch(() => false); },
+load() { return W.loadState().catch(() => null); },
+haptic(k) { try { W.haptic(k || 'tap'); } catch (e) {} },
+exit() { if (opts.onExit && opts.onExit() === false) return; W.exit(); },
+/** Canvas filling the stage; cv.w/h are CSS px. Calls onResize(w,h) on every size change. */
+canvas(onResize) {
+const cv = $('canvas'); K.stage.append(cv);
+const ctx = cv.getContext('2d'); const o = { cv, ctx, w: 1, h: 1, dpr: 1 };
+const fit = (cb) => {
+const r = K.stage.getBoundingClientRect(); const d = Math.min(3, window.devicePixelRatio || 1);
+o.w = Math.max(1, r.width); o.h = Math.max(1, r.height); o.dpr = d;
+cv.width = Math.round(o.w * d); cv.height = Math.round(o.h * d); ctx.setTransform(d, 0, 0, d, 0, 0);
+cb && onResize && onResize(o.w, o.h);
+};
+fit(false); new ResizeObserver(() => fit(true)).observe(K.stage);   // sizes now; onResize only from the observer (after your setup ran)
+return o;
+},
+/** rAF loop: fn(dt seconds, capped 1/20). Skips frames while paused. Returns stop(). */
+loop(fn) {
+let last = 0, on = true;
+const f = (t) => { if (!on) return; const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t; if (!K.paused) fn(dt, t); requestAnimationFrame(f); };
+requestAnimationFrame(f); return () => { on = false; };
+},
+/** Pointer helper with stage-relative CSS px. h = {down(x,y,e), move(x,y,e), up(x,y,e)} */
+pointer(el, h) {
+let id = null;
+const p = (e) => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+el.addEventListener('pointerdown', (e) => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} K.unlockAudio(); h.down && h.down(...p(e), e); });
+el.addEventListener('pointermove', (e) => { if (e.pointerId === id || (id === null && h.hover)) (id === null ? h.hover : h.move) && (id === null ? h.hover : h.move)(...p(e), e); });
+const end = (e) => { if (e.pointerId !== id) return; id = null; h.up && h.up(...p(e), e); };
+el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+},
+/** Overlay card. o = {emoji, title, text, html, buttons:[{label, primary, on, keep}], dismiss} → close() */
+menu(o) {
+const ov = $('div', 'k-ov'); const card = $('div', 'k-card');
+if (o.emoji) card.append($('div', 'k-emb', o.emoji));
+if (o.title) { const h = $('h2'); h.textContent = o.title; card.append(h); }
+if (o.text) { const p = $('p'); p.textContent = o.text; card.append(p); }
+if (o.html) card.append(typeof o.html === 'string' ? $('div', '', o.html) : o.html);
+const close = () => { ov.remove(); ovStack = ovStack.filter((x) => x !== close); };
+for (const b of o.buttons || []) {
+const e = $('button', 'k-btn' + (b.primary ? ' p' : '')); e.textContent = b.label;
+e.onclick = () => { K.sfx('tap'); if (!b.keep) close(); b.on && b.on(); }; card.append(e);
+}
+if (o.dismiss) ov.onclick = (e) => { if (e.target === ov) close(); };
+ov.append(card); document.body.append(ov); ovStack.push(close); return close;
+},
+closeMenus() { ovStack.slice().forEach((f) => f()); },
+pauseMenu() {
+K.paused = true; pauseCbs.forEach((f) => f());
+const resume = () => { K.paused = false; resumeCbs.forEach((f) => f()); };
+K.menu({ title: 'Paused', buttons: [
+{ label: 'Resume', primary: true, on: resume },
+...(opts.onRestart && !K.online ? [{ label: 'Restart', on: () => { K.paused = false; opts.onRestart(); } }] : []),
+...((opts.menuExtra || []).map((b) => ({ label: b.label, on: () => { K.paused = false; b.on(); } }))),
+{ label: K.muted ? 'Sound: off' : 'Sound: on', on: () => { K.muted = !K.muted; try { localStorage.setItem('k-mute', K.muted ? '1' : '0'); } catch (e) {} resume(); } },
+{ label: 'Exit game', on: () => K.exit() },
+] });
+},
+toast(t, ms) { const e = $('div', 'k-toast'); e.textContent = t; document.body.append(e); setTimeout(() => e.remove(), ms || 1600); },
+unlockAudio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); },
+/** Tiny synthesized sounds: tap pop good bad win lose bounce drop */
+sfx(name) {
+if (K.muted) return; K.unlockAudio(); if (!ac) return;
+const S = { tap: [[660, 0.04, 'sine', 0.08]], pop: [[520, 0.05, 'triangle', 0.12], [880, 0.05, 'triangle', 0.08]], good: [[660, 0.07, 'sine', 0.12], [990, 0.09, 'sine', 0.1]],
+bad: [[220, 0.12, 'sawtooth', 0.07], [160, 0.14, 'sawtooth', 0.06]], win: [[523, 0.1, 'triangle', 0.12], [659, 0.1, 'triangle', 0.12], [784, 0.1, 'triangle', 0.12], [1046, 0.2, 'triangle', 0.12]],
+lose: [[392, 0.14, 'triangle', 0.1], [330, 0.14, 'triangle', 0.1], [262, 0.24, 'triangle', 0.1]], bounce: [[440, 0.03, 'square', 0.05]], drop: [[300, 0.06, 'sine', 0.14], [180, 0.08, 'sine', 0.1]] }[name] || [];
+let t = ac.currentTime;
+for (const [f, d, type, v] of S) {
+const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f;
+g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d + 0.02); t += d * 0.9;
+}
+},
+rand: (a, b) => a + Math.random() * (b - a),
+ri: (a, b) => Math.floor(a + Math.random() * (b - a + 1)),
+shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; },
+rr(ctx, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); },
+/** Standard mode picker for 2-player board games. modes: subset of ['cpu','local'] (online is automatic). */
+pickMode(o, cb) {
+if (K.online) { cb('online'); return; }
+const b = [];
+if (o.modes.includes('cpu')) b.push({ label: o.cpuLabel || 'Play the computer', primary: true, on: () => cb('cpu') });
+if (o.modes.includes('local')) b.push({ label: 'Two players, this phone', primary: !o.modes.includes('cpu'), on: () => cb('local') });
+if (o.online) b.push({ label: 'Challenge a friend online', on: () => K.menu({ emoji: '💬', title: 'Play a friend', text: 'Close the game, tap “Challenge a friend” on its page, then pick a chat. Moves arrive in that chat.', buttons: [{ label: 'OK', primary: true, on: () => K.pickMode(o, cb) }] }) });
+K.menu({ emoji: o.emoji, title: o.title, text: o.text, buttons: b });
+},
+};
+window.Kit = K;
+})();
+</script><script>
+Kit.boot({ title: 'Wave Rider', accent: '#FF8A4C', onRestart: () => Kit.hook(0)}, (info) => {
+Kit.hooks = [() => start()];
+const C = Kit.colors, D = C.dark, RM = Kit.reduceMotion;
+const g = Kit.canvas(() => draw());
+const P = D ? { s0: '#0b1433', s1: '#3a2f63', sun: '#f4f1d8', isl: '#1a2347', far: '#173a63', mid: '#1b4f7d', near0: '#1e6a9c', near1: '#0b2f52', foam: '#cfe9ff', rock: '#56606d' }
+: { s0: '#7cc6ef', s1: '#ffd9a8', sun: '#fff1c1', isl: '#7ba7b8', far: '#4fb0d6', mid: '#2f97c7', near0: '#2a9fd3', near1: '#0b5f8f', foam: '#ffffff', rock: '#7a838c' };
+const GRAV = 2400, JV = 780, SX = 110;
+const ov = () => document.querySelector('.k-ov');
+const stars = Array.from({ length: 34 }, () => [Math.random(), Math.random() * 0.8, Math.random() * 1.2 + 0.4]);
+let obs = [], parts = [], state = 'menu', hold = 0, t = 0, dist = 0, speed = 280, shells = 0, score = 0, best = info.best || 0;
+let y = 0, vy = 0, ground = true, holding = false, holdT = 0, buffer = 0, gapLeft = 400, crashT = 0, spin = 0;
+function geo() { const s = Math.min(g.h / 640, g.w / 440), VW = g.w / s, VH = g.h / s; return { s, VW, VH, G: VH - Math.max(150, VH * 0.27) }; }
+const surf = (x) => Math.sin((x + dist) * 0.018 + t * 1.2) * 5;
+const rock = (x) => ({ k: 'rock', x, oy: 0, w: 50, h: 44 });
+const jelly = (x, oy) => ({ k: 'jelly', x, oy, ph: Math.random() * 6 });
+const shell = (x, oy) => ({ k: 'shell', x, oy });
+const PAT = [
+(x) => [rock(x)],
+(x) => [jelly(x, -72)],
+(x) => [jelly(x, -168), shell(x - 46, -24), shell(x, -24), shell(x + 46, -24)],
+(x) => [rock(x), shell(x - 52, -118), shell(x, -150), shell(x + 52, -118)],
+(x) => [rock(x), rock(x + 120)],
+(x) => [rock(x), jelly(x + 270, -168)],
+(x) => [jelly(x, -72), shell(x, -170)],
+];
+function spawn(VW) {
+const n = dist < 1800 ? 4 : PAT.length, list = PAT[Kit.ri(0, n - 1)](VW + 60);
+obs.push(...list);
+const span = Math.max(...list.map((o) => o.x)) - (VW + 60);
+gapLeft = span + Kit.rand(250, 440) + speed * 0.55;
+}
+function start() {
+Kit.paused = false; Kit.closeMenus(); obs = []; parts = []; dist = 0; speed = 280; shells = 0; score = 0;
+y = 0; vy = 0; ground = true; holding = false; buffer = 0; gapLeft = 300; spin = 0; state = 'play'; hold = 0.6;
+Kit.score(0); Kit.status('Tap to hop · hold to fly higher');
+}
+function jump() { vy = -JV; ground = false; holdT = 0; buffer = 0; Kit.sfx('bounce'); Kit.haptic('tap'); }
+function press() { if (state !== 'play' || hold > 0) return; holding = true; if (ground) jump(); else buffer = 0.14; }
+function release() { holding = false; }
+function crash() {
+state = 'crash'; crashT = 0; vy = -520; ground = false; Kit.sfx('bad'); Kit.haptic('error');
+const isBest = score > best; best = Math.max(best, score); Kit.submit(score);
+setTimeout(() => { if (state === 'crash') menu(true, isBest); }, 1000);
+}
+function menu(over, isBest) {
+Kit.menu({
+emoji: over ? (isBest ? '🏆' : '🌊') : '🏄', title: over ? (isBest ? 'New best!' : 'Wipeout!') : 'Wave Rider',
+text: over ? `${Math.floor(dist / 25)} m · ${shells} shells · Score ${score} · Best ${best}` : 'Tap to hop, hold to fly higher. Dodge rocks and jellyfish, scoop up shells!',
+buttons: [{ label: over ? 'Ride again' : 'Ride', primary: true, on: start }],
+});
+}
+function hitBox(o, G) {
+const L = SX - 15, R = SX + 15, T = G + y - 54, B = G + y - 4;
+if (o.k === 'rock') return R > o.x - o.w / 2 + 8 && L < o.x + o.w / 2 - 8 && B > G - o.h + 8;
+const cy = G + o.oy + (o.k === 'jelly' ? Math.sin(t * 2.2 + o.ph) * 8 : 0), r = o.k === 'jelly' ? 19 : 18;
+const nx = Math.max(L, Math.min(o.x, R)), ny = Math.max(T, Math.min(cy, B));
+return (o.x - nx) ** 2 + (cy - ny) ** 2 < r * r;
+}
+function update(dt) {
+const { VW, G } = geo();
+speed = Math.min(640, 280 + dist * 0.011); dist += speed * dt; buffer -= dt;
+if (ground) y = surf(SX);
+else {
+vy += (holding && vy < 0 && holdT < 0.24 ? GRAV * 0.42 : GRAV) * dt; holdT += dt; y += vy * dt;
+if (y >= surf(SX) && vy > 0) { y = surf(SX); ground = true; vy = 0; if (buffer > 0) jump(); }
+}
+for (const o of obs) o.x -= speed * dt;
+for (const o of obs) {
+if (o.got || !hitBox(o, G)) continue;
+if (o.k === 'shell') { o.got = true; shells++; Kit.sfx('good'); if (!RM) for (let i = 0; i < 8; i++) parts.push({ x: o.x, y: G + o.oy, vx: Kit.rand(-120, 60), vy: Kit.rand(-160, 40), l: 0.45, c: '#ffd79a' }); }
+else return crash();
+}
+obs = obs.filter((o) => o.x > -80 && !o.got);
+gapLeft -= speed * dt; if (gapLeft <= 0) spawn(VW);
+const sc = Math.floor(dist / 25) + shells * 10; if (sc !== score) { score = sc; Kit.score(score); }
+if (ground && !RM && Math.random() < 0.7) parts.push({ x: SX - 30, y: G + y, vx: -speed * 0.4 - Kit.rand(0, 80), vy: -Kit.rand(60, 170), l: 0.4, c: P.foam });
+}
+function wavePath(ctx, VW, base, amp, f, off, bottom) {
+ctx.beginPath(); ctx.moveTo(0, bottom);
+for (let x = 0; x <= VW + 12; x += 12) ctx.lineTo(x, base + Math.sin((x + off) * f) * amp + Math.sin((x + off) * f * 2.3) * amp * 0.35);
+ctx.lineTo(VW + 12, bottom); ctx.closePath();
+}
+function surfer(ctx, x, fy) {
+ctx.save(); ctx.translate(x, fy);
+ctx.rotate(state === 'crash' ? spin : Math.max(-0.35, Math.min(0.35, vy / 1800)));
+ctx.fillStyle = C.acc; ctx.beginPath(); ctx.ellipse(0, 2, 34, 5.5, 0, 0, 6.283); ctx.fill();
+ctx.fillStyle = '#ffffff'; ctx.fillRect(-26, 1, 52, 1.6);
+ctx.strokeStyle = '#23384a'; ctx.lineCap = 'round'; ctx.lineWidth = 6;
+ctx.beginPath(); ctx.moveTo(-10, -1); ctx.lineTo(-3, -14); ctx.lineTo(0, -25); ctx.moveTo(10, -1); ctx.lineTo(7, -13); ctx.lineTo(0, -25); ctx.stroke();
+ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(0, -25); ctx.lineTo(4, -41); ctx.stroke();
+ctx.lineWidth = 4.5; ctx.beginPath(); ctx.moveTo(3, -38); ctx.lineTo(-13, -33); ctx.moveTo(4, -39); ctx.lineTo(19, -40); ctx.stroke();
+ctx.fillStyle = '#f1bf8f'; ctx.beginPath(); ctx.arc(6, -49, 7, 0, 6.283); ctx.fill();
+ctx.fillStyle = '#5a3a24'; ctx.beginPath(); ctx.arc(5, -51, 7, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
+ctx.restore();
+}
+function draw() {
+const { ctx } = g, { s, VW, VH, G } = geo(), HZ = G - 170;
+ctx.setTransform(g.dpr * s, 0, 0, g.dpr * s, 0, 0);
+const sk = ctx.createLinearGradient(0, 0, 0, HZ); sk.addColorStop(0, P.s0); sk.addColorStop(1, P.s1);
+ctx.fillStyle = sk; ctx.fillRect(0, 0, VW, HZ + 2);
+if (D) { ctx.fillStyle = '#ffffff'; for (const [sx, sy, r] of stars) { ctx.globalAlpha = 0.35 + 0.4 * Math.abs(Math.sin(t * 0.8 + sx * 20)); ctx.fillRect(sx * VW, sy * HZ, r, r); } ctx.globalAlpha = 1; }
+const sunX = VW * 0.74, sunY = HZ - 70;
+const sg = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 110); sg.addColorStop(0, D ? 'rgba(240,240,210,.35)' : 'rgba(255,240,190,.9)'); sg.addColorStop(1, 'rgba(255,240,190,0)');
+ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sunX, sunY, 110, 0, 6.283); ctx.fill();
+ctx.fillStyle = P.sun; ctx.beginPath(); ctx.arc(sunX, sunY, D ? 22 : 34, 0, 6.283); ctx.fill();
+ctx.fillStyle = D ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.75)';
+for (let i = 0; i < 4; i++) {
+const cx = ((i * 260 + 80 - dist * 0.04) % (VW + 260) + VW + 260) % (VW + 260) - 130, cy = 60 + (i % 3) * 52;
+ctx.beginPath(); ctx.ellipse(cx, cy, 46, 13, 0, 0, 6.283); ctx.ellipse(cx + 18, cy - 9, 24, 12, 0, 0, 6.283); ctx.fill();
+}
+ctx.fillStyle = P.isl;
+for (let i = 0; i < 3; i++) {
+const ix = ((i * 430 + 120 - dist * 0.1) % (VW + 500) + VW + 500) % (VW + 500) - 250, w = 120 + i * 40;
+ctx.beginPath(); ctx.ellipse(ix, HZ + 4, w, 26 + i * 8, 0, Math.PI, 0); ctx.fill();
+}
+ctx.fillStyle = P.far; wavePath(ctx, VW, HZ, 2, 0.03, dist * 0.3, G + 40); ctx.fill();
+ctx.fillStyle = P.mid; wavePath(ctx, VW, HZ + 62, 6, 0.02, dist * 0.55, G + 40); ctx.fill();
+const curl = (RM ? 0 : Math.sin(t * 1.6) * 4);
+const cg = ctx.createLinearGradient(0, G - 160, 0, G); cg.addColorStop(0, P.near0); cg.addColorStop(1, P.near1);
+ctx.fillStyle = cg; ctx.beginPath(); ctx.moveTo(-10, G + 30); ctx.lineTo(-10, G - 150 + curl);
+ctx.bezierCurveTo(30, G - 175 + curl, 74, G - 150, 66 + curl, G - 118); ctx.bezierCurveTo(58, G - 132, 42, G - 120, 52, G - 96);
+ctx.bezierCurveTo(62, G - 60, 80, G - 20, 120, G + 2); ctx.closePath(); ctx.fill();
+ctx.strokeStyle = P.foam; ctx.globalAlpha = 0.85; ctx.lineWidth = 5; ctx.lineCap = 'round';
+ctx.beginPath(); ctx.moveTo(-10, G - 150 + curl); ctx.bezierCurveTo(30, G - 175 + curl, 74, G - 150, 66 + curl, G - 118); ctx.stroke(); ctx.globalAlpha = 1;
+for (const o of obs) {
+if (o.k === 'rock') {
+ctx.fillStyle = P.rock; ctx.beginPath(); ctx.moveTo(o.x - 26, G + 6); ctx.lineTo(o.x - 20, G - 28); ctx.lineTo(o.x - 6, G - 44); ctx.lineTo(o.x + 12, G - 40); ctx.lineTo(o.x + 24, G - 20); ctx.lineTo(o.x + 27, G + 6); ctx.fill();
+ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.moveTo(o.x - 18, G - 26); ctx.lineTo(o.x - 6, G - 40); ctx.lineTo(o.x + 2, G - 36); ctx.lineTo(o.x - 10, G - 20); ctx.fill();
+} else if (o.k === 'jelly') {
+const jy = G + o.oy + Math.sin(t * 2.2 + o.ph) * 8;
+if (D) { const jg = ctx.createRadialGradient(o.x, jy, 4, o.x, jy, 40); jg.addColorStop(0, 'rgba(255,120,200,.35)'); jg.addColorStop(1, 'rgba(255,120,200,0)'); ctx.fillStyle = jg; ctx.beginPath(); ctx.arc(o.x, jy, 40, 0, 6.283); ctx.fill(); }
+ctx.strokeStyle = 'rgba(255,140,200,.8)'; ctx.lineWidth = 2.5;
+for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(o.x + k * 6, jy + 4); for (let j = 1; j <= 4; j++) ctx.lineTo(o.x + k * 6 + Math.sin(t * 5 + j + k) * 3, jy + 4 + j * 6); ctx.stroke(); }
+ctx.fillStyle = 'rgba(255,120,190,.88)'; ctx.beginPath(); ctx.arc(o.x, jy + 4, 20, Math.PI, 0); ctx.quadraticCurveTo(o.x, jy + 10, o.x - 20, jy + 4); ctx.fill();
+ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.ellipse(o.x - 7, jy - 6, 5, 3, -0.5, 0, 6.283); ctx.fill();
+} else {
+const sy = G + o.oy + Math.sin(t * 3 + o.x * 0.05) * 3;
+ctx.fillStyle = '#ffcf96'; ctx.beginPath(); ctx.moveTo(o.x, sy + 11); ctx.arc(o.x, sy + 2, 13, Math.PI * 1.08, Math.PI * 1.92); ctx.closePath(); ctx.fill();
+ctx.strokeStyle = '#e59a5c'; ctx.lineWidth = 1.5; ctx.beginPath();
+for (let k = -2; k <= 2; k++) { ctx.moveTo(o.x, sy + 10); ctx.lineTo(o.x + k * 5, sy - 9); } ctx.stroke();
+}
+}
+const ng = ctx.createLinearGradient(0, G - 10, 0, VH); ng.addColorStop(0, P.near0); ng.addColorStop(1, P.near1);
+ctx.fillStyle = ng; ctx.beginPath(); ctx.moveTo(0, VH);
+for (let x = 0; x <= VW + 12; x += 10) ctx.lineTo(x, G + surf(x) + 4);
+ctx.lineTo(VW + 12, VH); ctx.closePath(); ctx.fill();
+surfer(ctx, SX, G + y);
+ctx.strokeStyle = P.foam; ctx.globalAlpha = 0.7; ctx.lineWidth = 3; ctx.beginPath();
+for (let x = 0; x <= VW + 12; x += 10) ctx[x ? 'lineTo' : 'moveTo'](x, G + surf(x) + 4);
+ctx.stroke(); ctx.globalAlpha = 1;
+for (const p of parts) { ctx.globalAlpha = Math.max(0, p.l / 0.45); ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, 2.6, 0, 6.283); ctx.fill(); }
+ctx.globalAlpha = 1;
+if (state === 'play' && hold > 0) { ctx.fillStyle = '#ffffff'; ctx.font = '800 30px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Ready…', VW / 2, HZ - 120); }
+ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
+}
+Kit.pointer(g.cv, { down: press, up: release });
+addEventListener('keydown', (e) => {
+if (ov()) return;
+if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') && !e.repeat) { press(); e.preventDefault(); }
+if (e.key === 'Escape' && state === 'play') Kit.pauseMenu();
+});
+addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') release(); });
+Kit.onPause(() => { holding = false; setTimeout(() => { if (Kit.paused && state === 'play' && !ov()) Kit.pauseMenu(); }, 0); });
+Kit.onResume(() => { if (ov()) Kit.paused = true; else hold = 0.8; });
+Kit.loop((dt) => {
+t += dt;
+if (state === 'play') { if (hold > 0) hold -= dt; else update(dt); }
+else if (state === 'crash') { crashT += dt; vy += GRAV * 0.6 * dt; y += vy * dt; spin += dt * 9; if (y > 30) { y = 30; vy = 0; } }
+for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.l -= dt; }
+if (parts.length) parts = parts.filter((p) => p.l > 0);
+draw();
+});
+draw(); Kit.ready(); Kit.status(`Best ${best}`);
+menu(false);
+});
+</script></body></html>

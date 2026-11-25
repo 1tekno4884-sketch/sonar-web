@@ -1,0 +1,23 @@
+{
+ "format": 1,
+ "id": "solitaire",
+ "name": "Sandbar Solitaire",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Classic seven-column patience on a sunny sandbar. Draw 1 or 3, tap to move, undo anytime.",
+ "accent": "#1E9E7A",
+ "glyph": "🃏",
+ "tags": [
+  "cards",
+  "classic",
+  "puzzle"
+ ],
+ "score": "low"
+}

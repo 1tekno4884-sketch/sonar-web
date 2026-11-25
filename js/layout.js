@@ -13,6 +13,7 @@ export function buildShell() {
     ui.tabs[id] = a;
     return a;
   }));
+  nav.append(h("a", { class: "tab", href: "games.html", "data-tab": "games", title: "Games" }, h("span", { class: "pill" }, icon("game")), h("span", {}, "Games")));   // U3-games: games.html (built-in games)
   const me = state.me;
   ui.rail = h("aside", { class: "rail" },
     h("a", { class: "brand-btn", href: "#/chats", "aria-label": "Sonar — chats" }, mark()),

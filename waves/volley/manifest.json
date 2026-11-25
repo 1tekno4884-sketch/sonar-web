@@ -1,0 +1,24 @@
+{
+ "format": 1,
+ "id": "volley",
+ "name": "Volley Bay",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "2-local",
+ "modes": [
+  "cpu",
+  "local"
+ ],
+ "description": "Beach-ball paddle duel on the sand. Beat the computer or a friend on the same phone — first to 7 wins.",
+ "accent": "#E0B341",
+ "glyph": "🏐",
+ "tags": [
+  "arcade",
+  "classic",
+  "2 players"
+ ],
+ "score": "high"
+}

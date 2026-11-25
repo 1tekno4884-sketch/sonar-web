@@ -1,0 +1,361 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>Sea Mines</title><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none}
+:root{--bg:#06202a;--fg:#e8f7fb;--sub:#9cc3cf;--card:#0d3341;--line:#1d4c5c;--acc:#1494B8;--acc2:#6FD3E6;--on:#fff;--good:#3ddc97;--bad:#ff6b6b;--warn:#ffc857}
+#k-app{position:fixed;inset:0;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#k-bar{display:flex;align-items:center;gap:8px;padding:10px 12px 6px;flex:0 0 auto}
+#k-bar .t{font-weight:700;font-size:17px;letter-spacing:.2px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#k-bar .s{font-variant-numeric:tabular-nums;font-weight:700;background:var(--card);border-radius:999px;padding:4px 12px;min-width:44px;text-align:center}
+#k-bar .s:empty{display:none}
+.k-ib{width:38px;height:38px;border-radius:50%;border:0;background:var(--card);color:var(--fg);display:grid;place-items:center;font-size:18px;cursor:pointer;flex:0 0 auto}
+.k-ib:active{transform:scale(.94)}
+#k-status{text-align:center;color:var(--sub);font-size:14px;min-height:20px;padding:0 12px 4px;flex:0 0 auto}
+#k-stage{position:relative;flex:1 1 auto;min-height:0}
+#k-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.k-ov{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);z-index:50;padding:24px;animation:k-f .18s ease-out}
+.k-card{background:var(--card);border-radius:24px;padding:22px 20px 16px;width:min(340px,100%);text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.k-card h2{margin:0 0 6px;font-size:22px}
+.k-card p{margin:0 0 14px;color:var(--sub)}
+.k-card .k-emb{font-size:44px;line-height:1;margin-bottom:8px}
+.k-btn{display:block;width:100%;border:0;border-radius:999px;padding:12px 16px;margin:8px 0 0;font:600 15px system-ui,sans-serif;cursor:pointer;background:var(--line);color:var(--fg)}
+.k-btn.p{background:var(--acc);color:var(--on)}
+.k-btn:active{transform:scale(.98)}
+.k-row{display:flex;gap:8px}.k-row .k-btn{flex:1}
+.k-toast{position:fixed;left:50%;width:max-content;max-width:calc(100vw - 32px);text-align:center;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--card);color:var(--fg);padding:10px 16px;border-radius:999px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.3);animation:k-f .2s ease-out;font-weight:600}
+.k-seg{display:flex;background:var(--line);border-radius:999px;padding:3px;margin:8px 0 0}
+.k-seg button{flex:1;border:0;background:none;color:var(--fg);padding:8px;border-radius:999px;font:600 14px system-ui,sans-serif}
+.k-seg button.on{background:var(--acc);color:var(--on)}
+.k-chip{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--line);font-size:13px;font-weight:600}
+@keyframes k-f{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.mb{position:absolute;left:0;right:0;bottom:0;height:72px;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 14px 12px}
+.mb .ct{background:var(--card);border-radius:999px;padding:10px 14px;font-weight:700;font-variant-numeric:tabular-nums;min-width:78px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.12);white-space:nowrap}
+.mb .k-seg{margin:0;flex:0 1 230px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.mb .k-seg button{padding:11px 8px;font-size:15px;cursor:pointer}
+</style></head><body><script>
+(function () {
+'use strict';
+const W = window.Wave || {
+version: 1, host: 'dev', ready() {}, info: async () => ({ gameId: 'dev', player: { name: 'You', username: null }, match: null, theme: { dark: !matchMedia('(prefers-color-scheme: light)').matches, accent: '#1494B8' }, reduceMotion: false, locale: navigator.language, best: null }),
+submitScore: async (n) => ({ best: n, isBest: true, rank: null }), saveState: async (d) => { try { localStorage.setItem('k-save', JSON.stringify(d)); } catch (e) {} return true; },
+loadState: async () => { try { return JSON.parse(localStorage.getItem('k-save')); } catch (e) { return null; } }, haptic() {}, exit() { location.reload(); },
+sendMove: async () => ({ seq: 0 }), onMove() {}, endMatch() {}, onPause() {}, onResume() {},
+};
+const $ = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const hex = (h) => { h = h.replace('#', ''); return [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16)); };
+const mix = (a, b, t) => { const x = hex(a), y = hex(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+let ac = null, readySent = false, pauseCbs = [], resumeCbs = [], opts = {}, ovStack = [];
+const K = {
+W, $, mix, paused: false, muted: false, reduceMotion: false, info: null, online: null, colors: {},
+/** Build the page chrome, apply the host theme, then call cb(info). opts: {title, accent, accent2, score:true, dark:{}, light:{}, onRestart, menuExtra:[{label,on}]} */
+async boot(o, cb) {
+opts = o || {};
+try { K.muted = localStorage.getItem('k-mute') === '1'; } catch (e) {}
+let info; try { info = await W.info(); } catch (e) { info = { theme: { dark: true }, player: { name: 'You' }, match: null }; }
+K.info = info; K.reduceMotion = !!info.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dark = info.theme ? info.theme.dark !== false : true;
+const acc = opts.accent || '#1494B8', acc2 = opts.accent2 || mix(acc, '#ffffff', 0.45);
+const base = dark ? { bg: mix(acc, '#000000', 0.86), card: mix(acc, '#000000', 0.72), line: mix(acc, '#000000', 0.55), fg: '#eef8fb', sub: mix(acc, '#ffffff', 0.62) }
+: { bg: mix(acc, '#ffffff', 0.92), card: '#ffffff', line: mix(acc, '#ffffff', 0.74), fg: mix(acc, '#000000', 0.82), sub: mix(acc, '#000000', 0.5) };
+const c = Object.assign(base, dark ? opts.dark : opts.light, { acc, acc2, on: '#ffffff', good: dark ? '#3ddc97' : '#16a36a', bad: dark ? '#ff6b6b' : '#d93c3c', warn: '#f5b83d', dark });
+K.colors = c;
+const r = document.documentElement.style;
+for (const k of ['bg', 'fg', 'sub', 'card', 'line', 'acc', 'acc2', 'on', 'good', 'bad', 'warn']) r.setProperty('--' + k, c[k]);
+document.title = opts.title || 'Game';
+const app = $('div'); app.id = 'k-app';
+const bar = $('div'); bar.id = 'k-bar';
+const back = $('button', 'k-ib', '&#x2715;'); back.setAttribute('aria-label', 'Close'); back.onclick = () => K.exit();
+const t = $('div', 't'); t.textContent = opts.title || '';
+const s = $('div', 's'); s.id = 'k-score';
+const m = $('button', 'k-ib', '&#9776;'); m.setAttribute('aria-label', 'Menu'); m.onclick = () => K.pauseMenu();
+bar.append(back, t, s, m);
+const st = $('div'); st.id = 'k-status';
+const stage = $('div'); stage.id = 'k-stage';
+app.append(bar, st, stage); document.body.append(app);
+K.stage = stage;
+if (info.match) {
+const m = info.match;
+K.online = {
+seat: m.you, players: m.players, id: m.id, over: m.status === 'over', winner: m.winner,
+name: (seat) => (m.players[seat] && (m.players[seat].name || m.players[seat].username)) || (seat === m.you ? 'You' : 'Friend'),
+onMove(cb) { W.onMove(cb); },
+send(mv) { return W.sendMove(mv); },
+end(winner, text) { K.online.over = true; W.endMatch({ winner, text }); },
+};
+}
+W.onPause(() => { K.paused = true; pauseCbs.forEach((f) => f()); });
+W.onResume(() => { K.paused = false; resumeCbs.forEach((f) => f()); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { K.paused = true; pauseCbs.forEach((f) => f()); } });
+cb && cb(info);
+},
+/** Boot options can't see functions declared inside the boot callback: games register them here (Kit.hooks = [fn…]) and the options call Kit.hook(i). */
+hooks: [], hook(i) { const f = K.hooks[i]; if (f) f(); },
+ready() { if (!readySent) { readySent = true; W.ready(); } },
+onPause(f) { pauseCbs.push(f); }, onResume(f) { resumeCbs.push(f); },
+title(t) { document.querySelector('#k-bar .t').textContent = t; },
+status(t) { document.getElementById('k-status').textContent = t == null ? '' : t; },
+score(n) { document.getElementById('k-score').textContent = n == null ? '' : String(n); },
+submit(n) { return W.submitScore(n).catch(() => null); },
+save(d) { return W.saveState(d).catch(() => false); },
+load() { return W.loadState().catch(() => null); },
+haptic(k) { try { W.haptic(k || 'tap'); } catch (e) {} },
+exit() { if (opts.onExit && opts.onExit() === false) return; W.exit(); },
+/** Canvas filling the stage; cv.w/h are CSS px. Calls onResize(w,h) on every size change. */
+canvas(onResize) {
+const cv = $('canvas'); K.stage.append(cv);
+const ctx = cv.getContext('2d'); const o = { cv, ctx, w: 1, h: 1, dpr: 1 };
+const fit = (cb) => {
+const r = K.stage.getBoundingClientRect(); const d = Math.min(3, window.devicePixelRatio || 1);
+o.w = Math.max(1, r.width); o.h = Math.max(1, r.height); o.dpr = d;
+cv.width = Math.round(o.w * d); cv.height = Math.round(o.h * d); ctx.setTransform(d, 0, 0, d, 0, 0);
+cb && onResize && onResize(o.w, o.h);
+};
+fit(false); new ResizeObserver(() => fit(true)).observe(K.stage);   // sizes now; onResize only from the observer (after your setup ran)
+return o;
+},
+/** rAF loop: fn(dt seconds, capped 1/20). Skips frames while paused. Returns stop(). */
+loop(fn) {
+let last = 0, on = true;
+const f = (t) => { if (!on) return; const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t; if (!K.paused) fn(dt, t); requestAnimationFrame(f); };
+requestAnimationFrame(f); return () => { on = false; };
+},
+/** Pointer helper with stage-relative CSS px. h = {down(x,y,e), move(x,y,e), up(x,y,e)} */
+pointer(el, h) {
+let id = null;
+const p = (e) => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+el.addEventListener('pointerdown', (e) => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} K.unlockAudio(); h.down && h.down(...p(e), e); });
+el.addEventListener('pointermove', (e) => { if (e.pointerId === id || (id === null && h.hover)) (id === null ? h.hover : h.move) && (id === null ? h.hover : h.move)(...p(e), e); });
+const end = (e) => { if (e.pointerId !== id) return; id = null; h.up && h.up(...p(e), e); };
+el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+},
+/** Overlay card. o = {emoji, title, text, html, buttons:[{label, primary, on, keep}], dismiss} → close() */
+menu(o) {
+const ov = $('div', 'k-ov'); const card = $('div', 'k-card');
+if (o.emoji) card.append($('div', 'k-emb', o.emoji));
+if (o.title) { const h = $('h2'); h.textContent = o.title; card.append(h); }
+if (o.text) { const p = $('p'); p.textContent = o.text; card.append(p); }
+if (o.html) card.append(typeof o.html === 'string' ? $('div', '', o.html) : o.html);
+const close = () => { ov.remove(); ovStack = ovStack.filter((x) => x !== close); };
+for (const b of o.buttons || []) {
+const e = $('button', 'k-btn' + (b.primary ? ' p' : '')); e.textContent = b.label;
+e.onclick = () => { K.sfx('tap'); if (!b.keep) close(); b.on && b.on(); }; card.append(e);
+}
+if (o.dismiss) ov.onclick = (e) => { if (e.target === ov) close(); };
+ov.append(card); document.body.append(ov); ovStack.push(close); return close;
+},
+closeMenus() { ovStack.slice().forEach((f) => f()); },
+pauseMenu() {
+K.paused = true; pauseCbs.forEach((f) => f());
+const resume = () => { K.paused = false; resumeCbs.forEach((f) => f()); };
+K.menu({ title: 'Paused', buttons: [
+{ label: 'Resume', primary: true, on: resume },
+...(opts.onRestart && !K.online ? [{ label: 'Restart', on: () => { K.paused = false; opts.onRestart(); } }] : []),
+...((opts.menuExtra || []).map((b) => ({ label: b.label, on: () => { K.paused = false; b.on(); } }))),
+{ label: K.muted ? 'Sound: off' : 'Sound: on', on: () => { K.muted = !K.muted; try { localStorage.setItem('k-mute', K.muted ? '1' : '0'); } catch (e) {} resume(); } },
+{ label: 'Exit game', on: () => K.exit() },
+] });
+},
+toast(t, ms) { const e = $('div', 'k-toast'); e.textContent = t; document.body.append(e); setTimeout(() => e.remove(), ms || 1600); },
+unlockAudio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); },
+/** Tiny synthesized sounds: tap pop good bad win lose bounce drop */
+sfx(name) {
+if (K.muted) return; K.unlockAudio(); if (!ac) return;
+const S = { tap: [[660, 0.04, 'sine', 0.08]], pop: [[520, 0.05, 'triangle', 0.12], [880, 0.05, 'triangle', 0.08]], good: [[660, 0.07, 'sine', 0.12], [990, 0.09, 'sine', 0.1]],
+bad: [[220, 0.12, 'sawtooth', 0.07], [160, 0.14, 'sawtooth', 0.06]], win: [[523, 0.1, 'triangle', 0.12], [659, 0.1, 'triangle', 0.12], [784, 0.1, 'triangle', 0.12], [1046, 0.2, 'triangle', 0.12]],
+lose: [[392, 0.14, 'triangle', 0.1], [330, 0.14, 'triangle', 0.1], [262, 0.24, 'triangle', 0.1]], bounce: [[440, 0.03, 'square', 0.05]], drop: [[300, 0.06, 'sine', 0.14], [180, 0.08, 'sine', 0.1]] }[name] || [];
+let t = ac.currentTime;
+for (const [f, d, type, v] of S) {
+const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f;
+g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d + 0.02); t += d * 0.9;
+}
+},
+rand: (a, b) => a + Math.random() * (b - a),
+ri: (a, b) => Math.floor(a + Math.random() * (b - a + 1)),
+shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; },
+rr(ctx, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); },
+/** Standard mode picker for 2-player board games. modes: subset of ['cpu','local'] (online is automatic). */
+pickMode(o, cb) {
+if (K.online) { cb('online'); return; }
+const b = [];
+if (o.modes.includes('cpu')) b.push({ label: o.cpuLabel || 'Play the computer', primary: true, on: () => cb('cpu') });
+if (o.modes.includes('local')) b.push({ label: 'Two players, this phone', primary: !o.modes.includes('cpu'), on: () => cb('local') });
+if (o.online) b.push({ label: 'Challenge a friend online', on: () => K.menu({ emoji: '💬', title: 'Play a friend', text: 'Close the game, tap “Challenge a friend” on its page, then pick a chat. Moves arrive in that chat.', buttons: [{ label: 'OK', primary: true, on: () => K.pickMode(o, cb) }] }) });
+K.menu({ emoji: o.emoji, title: o.title, text: o.text, buttons: b });
+},
+};
+window.Kit = K;
+})();
+</script><script>
+Kit.boot({ title: 'Sea Mines', accent: '#3D6DB3', onRestart: () => Kit.hook(0), menuExtra: [{ label: 'Change difficulty', on: () => Kit.hook(1)}] }, () => {
+Kit.hooks = [() => newGame(diff), () => pick()];
+const C = Kit.colors;
+const D = [{ n: 'Easy', c: 8, r: 10, m: 10 }, { n: 'Medium', c: 10, r: 14, m: 22 }, { n: 'Hard', c: 11, r: 18, m: 40 }];
+const NUM = C.dark ? ['', '#86b8ff', '#62e0a4', '#ff8f85', '#c0a6ff', '#ffb871', '#72e4f0', '#e6e6e6', '#b0b0b0']
+: ['', '#2c66cf', '#1a9160', '#d23f38', '#6847c4', '#b05c10', '#0f8496', '#333333', '#777777'];
+const HID = C.dark ? Kit.mix(C.acc, '#000000', 0.3) : Kit.mix(C.acc, '#ffffff', 0.12);
+const HIDT = C.dark ? Kit.mix(C.acc, '#ffffff', 0.08) : Kit.mix(C.acc, '#ffffff', 0.38);
+const OPEN = C.dark ? Kit.mix(C.bg, C.acc, 0.12) : Kit.mix(C.bg, C.acc, 0.1);
+let diff = 1, cols = 10, rows = 14, M = 22, mine = [], num = [], rev = [], flag = [], placed = false, over = true, lost = -1, won = false;
+let secs = 0, shown = -1, best = {}, flagMode = false, cur = -1, press = null;
+const g = Kit.canvas(draw);
+const bar = Kit.$('div', 'mb'); const ct = Kit.$('div', 'ct');
+const seg = Kit.$('div', 'k-seg', '<button class="on">⛏️ Dig</button><button>🚩 Flag</button>');
+const [bDig, bFlag] = seg.children;
+bDig.onclick = () => setMode(false); bFlag.onclick = () => setMode(true);
+bar.append(ct, seg); Kit.stage.append(bar);
+const fmt = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+function setMode(f) { flagMode = f; bDig.classList.toggle('on', !f); bFlag.classList.toggle('on', f); Kit.sfx('tap'); }
+function nb(i) {
+const x = i % cols, y = (i / cols) | 0, o = [];
+for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+const nx = x + dx, ny = y + dy;
+if ((dx || dy) && nx >= 0 && ny >= 0 && nx < cols && ny < rows) o.push(ny * cols + nx);
+}
+return o;
+}
+const flagsLeft = () => M - flag.reduce((a, b) => a + b, 0);
+function hud() { ct.textContent = '💣 ' + flagsLeft(); Kit.score(fmt(secs)); Kit.status(`${D[diff].n} · ${M} mines${best[diff] ? ' · best ' + fmt(best[diff]) : ''}`); }
+function geo() {
+const H = g.h - 76, cs = Math.floor(Math.min((g.w - 20) / cols, (H - 12) / rows, 58));
+return { cs, x: Math.round((g.w - cs * cols) / 2), y: Math.round(Math.max(6, (H - cs * rows) / 2)) };
+}
+function drawMine(ctx, cx, cy, r) {
+ctx.strokeStyle = C.dark ? '#aeb9c7' : '#1c2633'; ctx.lineWidth = Math.max(1.5, r * 0.22); ctx.lineCap = 'round';
+for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * r * 1.45, cy + Math.sin(a) * r * 1.45); ctx.stroke(); }
+ctx.fillStyle = C.dark ? '#d3dbe5' : '#26323f'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
+ctx.fillStyle = C.dark ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.arc(cx - r * 0.35, cy - r * 0.35, r * 0.25, 0, 7); ctx.fill();
+}
+function drawFlag(ctx, cx, cy, s) {
+ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.3, s * 0.26, s * 0.08, 0, 0, 7); ctx.fill();
+ctx.strokeStyle = C.dark ? '#e8eef5' : '#2a3442'; ctx.lineWidth = Math.max(1.5, s * 0.07); ctx.lineCap = 'round';
+ctx.beginPath(); ctx.moveTo(cx - s * 0.08, cy + s * 0.3); ctx.lineTo(cx - s * 0.08, cy - s * 0.3); ctx.stroke();
+ctx.fillStyle = '#ff5a4f'; ctx.beginPath(); ctx.moveTo(cx - s * 0.06, cy - s * 0.3); ctx.lineTo(cx + s * 0.3, cy - s * 0.15); ctx.lineTo(cx - s * 0.06, cy); ctx.closePath(); ctx.fill();
+}
+function draw() {
+const { ctx } = g; if (!ctx || !rev.length) return;
+ctx.clearRect(0, 0, g.w, g.h);
+const { cs, x, y } = geo(), p = Math.max(1, cs * 0.06), rad = cs * 0.2;
+ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.18)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 4;
+ctx.fillStyle = C.card; Kit.rr(ctx, x - 6, y - 6, cs * cols + 12, cs * rows + 12, 16); ctx.fill(); ctx.restore();
+ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `800 ${Math.round(cs * 0.56)}px system-ui,sans-serif`;
+for (let i = 0; i < cols * rows; i++) {
+const cx0 = x + (i % cols) * cs, cy0 = y + ((i / cols) | 0) * cs, cx = cx0 + cs / 2, cy = cy0 + cs / 2;
+const showMine = mine[i] && (over && !won);
+if (rev[i] || (showMine && !flag[i])) {
+ctx.fillStyle = i === lost ? C.bad : mine[i] ? Kit.mix(OPEN, C.bad, 0.22) : OPEN; Kit.rr(ctx, cx0 + p, cy0 + p, cs - 2 * p, cs - 2 * p, rad); ctx.fill();
+if (mine[i]) drawMine(ctx, cx, cy, cs * 0.2);
+else if (num[i]) { ctx.fillStyle = NUM[num[i]]; ctx.fillText(num[i], cx, cy + cs * 0.03); }
+} else {
+ctx.fillStyle = HID; Kit.rr(ctx, cx0 + p, cy0 + p, cs - 2 * p, cs - 2 * p, rad); ctx.fill();
+ctx.fillStyle = HIDT; Kit.rr(ctx, cx0 + p, cy0 + p, cs - 2 * p, (cs - 2 * p) * 0.55, rad); ctx.fill();
+ctx.fillStyle = HID; Kit.rr(ctx, cx0 + p + cs * 0.06, cy0 + p + cs * 0.1, cs - 2 * p - cs * 0.12, cs - 2 * p - cs * 0.16, rad * 0.8); ctx.fill();
+if (flag[i]) {
+drawFlag(ctx, cx, cy, cs);
+if (over && !won && !mine[i]) { ctx.strokeStyle = C.bad; ctx.lineWidth = Math.max(2, cs * 0.08); ctx.beginPath(); ctx.moveTo(cx0 + cs * 0.22, cy0 + cs * 0.22); ctx.lineTo(cx0 + cs * 0.78, cy0 + cs * 0.78); ctx.moveTo(cx0 + cs * 0.78, cy0 + cs * 0.22); ctx.lineTo(cx0 + cs * 0.22, cy0 + cs * 0.78); ctx.stroke(); }
+}
+}
+if (i === cur && !over) { ctx.strokeStyle = C.warn; ctx.lineWidth = 3; Kit.rr(ctx, cx0 + 1.5, cy0 + 1.5, cs - 3, cs - 3, rad); ctx.stroke(); }
+}
+}
+function place(safe) {
+const ban = new Set(nb(safe).concat(safe)), cells = [];
+for (let i = 0; i < cols * rows; i++) if (!ban.has(i)) cells.push(i);
+Kit.shuffle(cells).slice(0, M).forEach((i) => { mine[i] = 1; });
+for (let i = 0; i < cols * rows; i++) num[i] = nb(i).filter((j) => mine[j]).length;
+placed = true;
+}
+function open(i) {   // returns false if a mine was hit
+if (rev[i] || flag[i]) return true;
+if (mine[i]) { lose(i); return false; }
+const st = [i];
+while (st.length) {
+const k = st.pop(); if (rev[k] || flag[k]) continue;
+rev[k] = 1; if (num[k] === 0) for (const j of nb(k)) if (!rev[j] && !mine[j]) st.push(j);
+}
+return true;
+}
+function act(i, asFlag) {
+if (over || i < 0) return;
+if (rev[i]) {   // chord
+const n = nb(i), f = n.filter((j) => flag[j]).length;
+if (num[i] && f === num[i] && n.some((j) => !rev[j] && !flag[j])) { for (const j of n) if (!open(j)) return; Kit.sfx('pop'); }
+else return;
+} else if (asFlag) {
+flag[i] = flag[i] ? 0 : 1; Kit.sfx(flag[i] ? 'drop' : 'tap'); Kit.haptic('medium');
+} else {
+if (flag[i]) return;
+if (!placed) place(i);
+if (!open(i)) return;
+Kit.sfx('tap'); Kit.haptic('light');
+}
+if (rev.reduce((a, b) => a + b, 0) === cols * rows - M) return win();
+hud(); draw(); save();
+}
+function lose(i) {
+over = true; lost = i; won = false; Kit.sfx('lose'); Kit.haptic('error'); draw(); hud(); save();
+setTimeout(() => Kit.menu({ emoji: '💥', title: 'Boom!', text: 'A sea mine went off. The bay is still waiting.',
+buttons: [{ label: 'Try again', primary: true, on: () => newGame(diff) }, { label: 'Change difficulty', on: pick }, { label: 'Look at the board' }] }), 800);
+}
+function win() {
+over = true; won = true;
+for (let i = 0; i < cols * rows; i++) if (mine[i]) flag[i] = 1;
+const t = Math.max(1, Math.round(secs)), prev = best[diff];
+if (!prev || t < prev) best[diff] = t;
+if (diff === 1) Kit.submit(t);
+Kit.sfx('win'); Kit.haptic('success'); hud(); draw(); save();
+setTimeout(() => Kit.menu({ emoji: '⚓', title: 'Bay cleared!', text: `${D[diff].n} in ${fmt(t)}${prev && t < prev ? ' — new best!' : ''}${diff !== 1 ? '. The leaderboard counts Medium times.' : ''}`,
+buttons: [{ label: 'Play again', primary: true, on: () => newGame(diff) }, { label: 'Change difficulty', on: pick }] }), 700);
+}
+function newGame(d) {
+diff = d; ({ c: cols, r: rows, m: M } = D[d]);
+const n = cols * rows; mine = Array(n).fill(0); num = Array(n).fill(0); rev = Array(n).fill(0); flag = Array(n).fill(0);
+placed = false; over = false; won = false; lost = -1; secs = 0; cur = -1; setMode(false);
+hud(); draw(); save();
+}
+const bits = (a) => a.join('');
+const unbits = (s) => s.split('').map(Number);
+function save() {
+Kit.save({ best, diff, game: over || !placed ? null : { mine: bits(mine), rev: bits(rev), flag: bits(flag), secs: Math.floor(secs) } });
+}
+function pick() {
+Kit.menu({ emoji: '💣', title: 'Sea Mines', text: 'Numbers count the mines touching a square. Long-press or use Flag to mark one.',
+buttons: D.map((d, i) => ({ label: `${d.n} · ${d.c}×${d.r}` + (best[i] ? ` · ${fmt(best[i])}` : ''), primary: i === diff, on: () => newGame(i) })) });
+}
+function cellAt(px, py) {
+const { cs, x, y } = geo(), c = Math.floor((px - x) / cs), r = Math.floor((py - y) / cs);
+return c < 0 || r < 0 || c >= cols || r >= rows ? -1 : r * cols + c;
+}
+Kit.pointer(g.cv, {
+down(px, py) {
+const i = cellAt(px, py); cur = -1;
+press = { i, x: px, y: py, lp: false, t: setTimeout(() => { if (press && press.i === i && !over && !rev[i]) { press.lp = true; act(i, true); } }, 380) };
+},
+move(px, py) { if (press && Math.hypot(px - press.x, py - press.y) > 12) { clearTimeout(press.t); press = null; } },
+up() { if (!press) return; clearTimeout(press.t); if (!press.lp) act(press.i, flagMode); press = null; },
+});
+g.cv.addEventListener('contextmenu', (e) => e.preventDefault());
+addEventListener('keydown', (e) => {
+if (over || document.querySelector('.k-ov')) return;
+const k = e.key, mv = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[k];
+if (mv) { if (cur < 0) cur = 0; else { const x = Math.min(cols - 1, Math.max(0, cur % cols + mv[0])), y = Math.min(rows - 1, Math.max(0, ((cur / cols) | 0) + mv[1])); cur = y * cols + x; } draw(); e.preventDefault(); }
+else if ((k === ' ' || k === 'Enter') && cur >= 0) { act(cur, flagMode); e.preventDefault(); }
+else if ((k === 'f' || k === 'F') && cur >= 0) act(cur, true);
+});
+Kit.onPause(save);
+Kit.loop((dt) => {
+if (over || !placed || document.querySelector('.k-ov')) return;
+secs += dt; if (Math.floor(secs) !== shown) { shown = Math.floor(secs); Kit.score(fmt(secs)); }
+});
+Kit.load().then((s) => {
+if (s && s.best) best = s.best;
+if (s && typeof s.diff === 'number') diff = s.diff;
+newGame(diff);
+if (s && s.game && s.game.mine && s.game.mine.length === cols * rows) {
+mine = unbits(s.game.mine); rev = unbits(s.game.rev); flag = unbits(s.game.flag); secs = s.game.secs || 0; placed = true;
+for (let i = 0; i < cols * rows; i++) num[i] = nb(i).filter((j) => mine[j]).length;
+hud(); draw(); Kit.toast('Resumed your game');
+} else pick();
+Kit.ready();
+});
+});
+</script></body></html>

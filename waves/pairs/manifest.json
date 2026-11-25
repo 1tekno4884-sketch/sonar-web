@@ -1,0 +1,23 @@
+{
+ "format": 1,
+ "id": "pairs",
+ "name": "Tidepool Pairs",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "1",
+ "modes": [
+  "solo"
+ ],
+ "description": "Flip the tidepool cards and match every sea creature. Fewer flips, faster time, more points.",
+ "accent": "#22A89A",
+ "glyph": "🦀",
+ "tags": [
+  "puzzle",
+  "memory",
+  "cards"
+ ],
+ "score": "high"
+}

@@ -15,6 +15,7 @@ import { notify, setUnread, pingSound, askPermission, permission, canNotify } fr
 import { startCall } from "./calls.js";
 import { flairAvatar, flairName, ribbonsHtml } from "./identity.js";   // U2-identity
 import { isChannel, isChannelAdmin, chanMark, channelInfo, leaveChannel, fetchChannel, channelCached, subsText, channelWebLink, renderDiscover, renderChannelRoute, newChannelModal } from "./channels.js";
+import { tideMapButton, tideMapMain } from "./u3social.js";   // U3-social: Tide Map
 
 // ------------------------------------------------------------------ helpers
 const isGroup = (c) => c.type === "group";
@@ -307,6 +308,7 @@ function renderList(el) {
     h("div", { class: "pane-head" }, h("h1", {}, "Chats"),
       iconBtn("search", "Search everything (Ctrl+K)", () => import("./app.js").then((m) => m.openSearch())),
       iconBtn("megaphone", "Discover channels", () => (location.hash = "#/channels")),
+      tideMapButton(),   // U3-social: Tide Map (only when the beta is on)
       iconBtn("plus", "New chat", (e) => newChatMenu(e.currentTarget))),
     h("div", { class: "searchbox" }, icon("search"), search),
     h("div", { style: "padding:0 14px" }, chips), notifBanner, lineNote, body);
@@ -392,7 +394,7 @@ async function sendBody(chatId, body, optimistic = true) {
   const id = body.id || (body.id = newId());
   if (optimistic) {
     b.byId.set(id, { id, chatId, senderId: myId(), type: body.type || "text", text: body.text || "", media: body.media || null, replyTo: body.replyTo || null,
-      createdAt: Date.now(), reactions: {}, x: Object.fromEntries(["silent", "fwd", "sticker", "file", "album", "poll", "link", "quote"].filter((k) => body[k]).map((k) => [k, body[k]])), gif: body.gif || null, _pending: true });
+      createdAt: Date.now(), reactions: {}, x: Object.fromEntries(["silent", "fwd", "sticker", "file", "album", "poll", "link", "quote", "whisper"].filter((k) => body[k]).map((k) => [k, body[k]])), gif: body.gif || null, _pending: true });
     emit("chat:" + chatId, { msgs: true, mine: true });
   }
   try {
@@ -815,6 +817,7 @@ export const chatsTab = {
     // channels: app.js passes [":channels"] / [":channel", id]
     if (args[0] === ":channels") { state.openChat = null; schedule(); return renderDiscover(el); }
     if (args[0] === ":channel") { state.openChat = null; schedule(); return renderChannelRoute(el, args[1], renderConversation); }
+    if (args[0] === ":map") { state.openChat = null; schedule(); return tideMapMain(el); }   // U3-social: #/map
     const id = args[0];
     if (!id) {
       el.append(mainEmpty("Your chats", "Pick a chat on the left, or start a new one. Press Ctrl+K to search.", h("div", { class: "row", style: "justify-content:center;margin-top:10px" },

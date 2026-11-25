@@ -1,0 +1,25 @@
+{
+ "format": 1,
+ "id": "checkers",
+ "name": "Shell Checkers",
+ "author": "Undertow Studio",
+ "version": "1.0.0",
+ "mode": "2d",
+ "entry": "index.html",
+ "orientation": "portrait",
+ "players": "2-online",
+ "modes": [
+  "cpu",
+  "local",
+  "online"
+ ],
+ "description": "Classic draughts on a sandy beach. Jump shells, chain captures and crown your way across.",
+ "accent": "#C98A3E",
+ "glyph": "🐚",
+ "tags": [
+  "board",
+  "classic",
+  "strategy"
+ ],
+ "score": "high"
+}
