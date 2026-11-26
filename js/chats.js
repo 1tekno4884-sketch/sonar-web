@@ -548,11 +548,7 @@ async function msgMenu(c, m, anchor, point, composer) {
       if (!(await confirmBox("Delete for everyone?", "This removes the message for everyone in the chat.", "Delete", true))) return;
       try { const r = await patch(`/v1/messages/${enc(m.id)}`, { deleted: true }); bucket(c.id).byId.set(m.id, r); emit("chat:" + c.id, { msgs: true }); } catch (e) { toast(errText(e)); }
     } } : null,
-    !mine ? { label: "Report", icon: "shield", danger: true, onclick: async () => {
-      const reason = await promptBox("Report this message", { placeholder: "What's wrong? (spam, harassment…)", okLabel: "Report" });
-      if (reason == null) return;
-      try { await post("/v1/reports", { kind: "message", targetId: m.id, reason: reason || "other", details: reason }); toast("Thanks — our team will take a look"); } catch (e) { toast(errText(e)); }
-    } } : null,
+    !mine ? { label: "Report", icon: "shield", danger: true, onclick: () => import("./u4report.js").then((R) => R.openReport({ kind: m.type === "snap" ? "snap" : "message", targetId: m.id, ownerId: m.senderId, preview: (m.text || "").slice(0, 200) })) } : null,   // U4-fixes
   ], { label: "Message actions" });
 }
 
@@ -665,7 +661,7 @@ async function renderConversation(el, id) {
     openOnce: async (m, btn) => {
       btn.disabled = true;
       try {
-        const blob = await fetchBlob("/v1/snap/open", { method: "POST", body: { chatId: id, msgId: m.id } });
+        const blob = await fetchBlob("/v1/snap/open", { method: "POST", body: { chatId: id, msgId: m.id, grace: true } });
         const url = URL.createObjectURL(blob);
         const close = openViewer([{ url, kind: blob.type.startsWith("video") ? "video" : "image" }], 0, "Opens once — it's gone when you close it");
         const obs = new MutationObserver(() => { if (!document.querySelector(".viewer")) { URL.revokeObjectURL(url); obs.disconnect(); loadMessages(id); } });

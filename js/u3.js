@@ -17,7 +17,7 @@ const AVATAR = {
 
 function canvasCss(c, bg) {
   if (!c) return "";
-  const cols = (c.colors && c.colors.length ? c.colors : [0xff0b3b4a, 0xff1494b8]).map(hex);
+  const cols = (c.colors && c.colors.length ? c.colors : [0xff0e1b2e, 0xff1e88a8]).map(hex);
   if (cols.length === 1) cols.push(cols[0]);
   let g;
   switch (c.kind || "Linear") {
@@ -45,4 +45,10 @@ export function applyU3(u3, bg) {
   const c = u3.canvases && u3.canvases.all;
   r.setProperty("--u3-canvas", c ? canvasCss(c, bg) : "none");
   root.classList.toggle("u3-canvas", !!c);
+  // U4-glassrs: Sea Glass (u3.glass) → CSS backdrop-filter on the chrome (style.css "U4-glassrs" block)
+  const g = u3.glass || {};
+  root.classList.toggle("sea-glass", !!g.on);
+  root.classList.toggle("glass-tinted", !!(g.on && g.tinted));
+  root.classList.toggle("glass-solid", !!(g.on && g.reduceTransparency));
+  root.dataset.glass = String(g.strength || "Standard").toLowerCase();
 }

@@ -94,7 +94,7 @@ function paint(cv, w, t) {
   else if (w.kind === "Gradient") {
     const a = (w.angle * Math.PI) / 180, r = Math.max(W, H) / 2, cx = W / 2, cy = H / 2;
     const gr = g.createLinearGradient(cx - Math.cos(a) * r, cy - Math.sin(a) * r, cx + Math.cos(a) * r, cy + Math.sin(a) * r);
-    gr.addColorStop(0, argb(w.color, "#0B3B4A")); gr.addColorStop(1, argb(w.color2, "#1494B8")); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    gr.addColorStop(0, argb(w.color, "#0B3B4A")); gr.addColorStop(1, argb(w.color2, "#1E88A8")); g.fillStyle = gr; g.fillRect(0, 0, W, H);
   } else if (w.kind === "Builtin") DRAW[w.id]?.(g, W, H, p, t);
   if (w.kind !== "None" && w.dim > 0) { g.fillStyle = `rgba(0,0,0,${Math.min(0.85, w.dim)})`; g.fillRect(0, 0, W, H); }
 }

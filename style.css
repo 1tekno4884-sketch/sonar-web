@@ -2,7 +2,7 @@
 /* Colours are set from the synced theme by js/settings.js; these are the Sonar dark defaults before it runs. */
 :root {
   --bg: #03161d; --surface: #082229; --surface2: #0d2d36; --surface3: #133843; --line: #1d4652;
-  --text: #e6f6fa; --muted: #9cc0ca; --primary: #6fd3e6; --vivid: #1494b8; --deep: #04212b; --light: #6fd3e6; --on-vivid: #fff;
+  --text: #e6f6fa; --muted: #9cc0ca; --primary: #4fd1e8; --vivid: #1e88a8; --deep: #0e1b2e; --light: #4fd1e8; --on-vivid: #fff;
   --danger: #ff8a80; --ok: #3ccf8e; --warn: #ffc857;
   --r: 20px; --msg-size: 16px; --ui-scale: 1;
   --rail: 76px; --list: 360px;
@@ -482,3 +482,25 @@ button.linkish:hover { text-decoration: underline; }
 h1, h2, h3 { font-size: calc(1em * var(--head-scale)); }
 body { letter-spacing: var(--tracking); font-size: calc(100% * var(--body-scale)); font-weight: calc(400 + var(--weight-shift)); }
 :root.u3-canvas body { background: var(--u3-canvas) fixed; }
+
+/* ── U4-glassrs: Sea Glass (synced u3.glass; toggled in js/u3.js) ── */
+:root.sea-glass { --glass-a: 68%; --glass-blur: 22px; --glass-tint: var(--surface); --glass-rim: rgba(255,255,255,.22); --glass-rim2: rgba(255,255,255,.05); }
+:root.sea-glass[data-glass="subtle"] { --glass-a: 84%; --glass-blur: 18px; }
+:root.sea-glass[data-glass="clear"] { --glass-a: 52%; --glass-blur: 26px; }
+:root.sea-glass.glass-tinted { --glass-tint: color-mix(in srgb, var(--surface) 86%, var(--vivid)); }
+@media (prefers-color-scheme: light) { :root.sea-glass { --glass-rim: rgba(255,255,255,.9); --glass-rim2: rgba(0,0,0,.08); } }
+.sea-glass .conv-head, .sea-glass .composer, .sea-glass .pinbar, .sea-glass .menu, .sea-glass .modal .box, .sea-glass .rail, .sea-glass .conv-search {
+  background: color-mix(in srgb, var(--glass-tint) var(--glass-a), transparent);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.35); backdrop-filter: blur(var(--glass-blur)) saturate(1.35);
+  border-color: var(--glass-rim2);
+  box-shadow: inset 1px 1px 0 var(--glass-rim), inset -1px -1px 0 var(--glass-rim2);
+}
+.sea-glass .menu { box-shadow: inset 1px 1px 0 var(--glass-rim), inset -1px -1px 0 var(--glass-rim2), 0 12px 32px rgba(0,0,0,.18); }
+.sea-glass .modal { background: rgba(0,0,0,.28); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+/* messages scroll under the glass chat header */
+.sea-glass .conv-head:has(+ .msgs) { margin-bottom: -64px; z-index: 3; }
+.sea-glass .conv-head:has(+ .msgs) + .msgs { padding-top: 76px; }
+/* readability: solid glass when asked for */
+:root.sea-glass.glass-solid { --glass-a: 100%; --glass-blur: 0px; }
+@media (prefers-reduced-transparency: reduce) { :root.sea-glass { --glass-a: 100%; --glass-blur: 0px; } }
+@media (prefers-contrast: more) { :root.sea-glass { --glass-a: 96%; --glass-rim: rgba(255,255,255,.6); } }

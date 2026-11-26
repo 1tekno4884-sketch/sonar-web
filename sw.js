@@ -1,6 +1,6 @@
 // Sonar web service worker — caches the app shell only (HTML, CSS, JS, fonts, icons) so the app opens fast and
 // installs as a PWA. It never stores messages, media or API responses: those are on another origin and pass through.
-const VERSION = "sonar-shell-v7";   // U3 merge: v6 (U3-social) → v7 for U3-custom js/u3.js + U3-games games.html/waves
+const VERSION = "sonar-shell-v9";   // U3 merge: v6 (U3-social) → v7 for U3-custom js/u3.js + U3-games games.html/waves; U4-fixes: v8 (js/u4report.js); U4 merge: v9 (glassrs icons + CSS, fixes js/u4report.js)
 const SHELL = [
   "./", "index.html", "style.css", "calls.css", "identity.css", "config.js", "manifest.webmanifest",
   "js/app.js", "js/api.js", "js/dom.js", "js/state.js", "js/settings.js", "js/wallpaper.js", "js/line.js", "js/notify.js",
@@ -9,6 +9,7 @@ const SHELL = [
   "js/identity.js", // U2-identity
   "js/u2dev.js",   // U2-dev
   "js/u3map.js", "js/u3social.js",   // U3-social
+  "js/u4report.js",   // U4-fixes
   "games.html", "waves/games-web.js", "waves/bridge.js", "waves/index.json",   // U3-games (each game page is cached on first play)
   "fonts/inter.ttf", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png",
 ];

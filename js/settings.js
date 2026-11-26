@@ -14,7 +14,7 @@ const LKEY = () => `sonar_settings_${state.me?.id || "anon"}`;
 export const DEFAULTS = {
   "appearance.theme.mode": "System",
   "appearance.theme.source": "Preset",
-  "appearance.theme.preset": "Sonar",
+  "appearance.theme.preset": "Tide teal",   // U4: Tide teal is the default (a saved preset still wins)
   "appearance.textScale": 1,
   "appearance.motion": "Full",
   "chat.bubble": "Round",
@@ -140,6 +140,7 @@ const argbHex = (n) => "#" + ((Number(n) >>> 0) & 0xffffff).toString(16).padStar
 
 /** The app's presets (ThemeEngine.ColorPresets). The web offers the Sonar/ocean ones; all of them render. */
 export const PRESETS = {
+  "Tide teal": "#1E88A8",   // U4: the default
   "Sonar": "#1494B8", "Ripple blue": "#1565FF", "Wake seafoam": "#20D3B5", "Cobalt": "#1F5BFF", "Ocean": "#0077B6", "Sky": "#4FA8FF",
   "Indigo": "#3F51B5", "Violet": "#7E57C2", "Teal": "#00897B", "Emerald": "#2E7D32", "Lime": "#7CB342", "Amber": "#FFA000", "Sunset": "#F4511E",
   "Crimson": "#C62828", "Rose": "#D81B60", "Graphite": "#5F6B7A", "Mono": "#808080",
@@ -150,9 +151,10 @@ export const PRESETS = {
   "Starfish": "#FF8F00", "Storm": "#455A64", "Glacier": "#80DEEA", "Lava": "#BF360C", "Mangrove": "#5D7A3A", "Sunken gold": "#C9A227",
   "Bluefin": "#0D5C8C", "Jellyfish": "#F48FB1", "Orca": "#263238", "Bioluminescence": "#3DDC97",
 };
-export const WEB_PRESETS = ["Sonar", "Ripple blue", "Wake seafoam", "Abyss", "Lagoon", "Coral", "Kelp", "Pearl", "Sunset Reef"];
+export const WEB_PRESETS = ["Tide teal", "Sonar", "Ripple blue", "Wake seafoam", "Abyss", "Lagoon", "Coral", "Kelp", "Pearl", "Sunset Reef"];
 export const PRESET_LABEL = { "Wake seafoam": "Seafoam" };
 const BRANDS = {
+  "Tide teal": { deep: "#0E1B2E", vivid: "#1E88A8", light: "#4FD1E8" },
   "Sonar": { deep: "#04212B", vivid: "#1494B8", light: "#6FD3E6" },
   "Ripple blue": { deep: "#061A3D", vivid: "#1565FF", light: "#6FA8FF" },
 };
@@ -164,7 +166,7 @@ export function seedHex() {
   if (night) return night;
   const src = getS("appearance.theme.source");
   if (src === "Custom" && getS("appearance.theme.seed") != null) return argbHex(getS("appearance.theme.seed"));
-  return PRESETS[getS("appearance.theme.preset")] || PRESETS.Sonar;
+  return PRESETS[getS("appearance.theme.preset")] || PRESETS["Tide teal"];
 }
 export function isDark() {
   const mode = getS("appearance.theme.mode");

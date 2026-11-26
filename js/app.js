@@ -12,6 +12,8 @@ import { peopleTab } from "./people.js";
 import { flairAvatar, flairName, ribbonsHtml } from "./identity.js";   // U2-identity
 import { settingsTab } from "./settingsui.js";
 import { callsTab, initCalls, stopCalls, joinByCode } from "./calls.js";
+import { initReports } from "./u4report.js";   // U4-fixes: unified reports + review queue (moderators)
+import { API } from "./api.js";
 
 const TABS = { chats: chatsTab, calls: callsTab, people: peopleTab, settings: settingsTab };
 let currentTab = null, mainCleanup = null, booted = false;
@@ -85,6 +87,7 @@ async function startSession() {
   connectLine();
   initChats();
   initCalls();
+  initReports({ api, apiBase: API, token: () => token, toast });   // U4-fixes: #/reports (yours), #/mod (review queue)
   emit("me");
 }
 

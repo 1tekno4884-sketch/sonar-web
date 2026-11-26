@@ -104,12 +104,7 @@ async function renderProfile(el, username) {
       if (!blocked && !(await confirmBox(`Block ${u.displayName || u.username}?`, "They won't be able to message, call or follow you.", "Block", true))) return;
       try { await post(`/v1/users/${enc(u.id)}/block`, { on: !blocked }); toast(blocked ? "Unblocked" : "Blocked"); location.reload(); } catch (er) { toast(errText(er)); }
     } } : null,
-    !me ? { label: "Report", icon: "shield", danger: true, onclick: async () => {
-      const { promptBox } = await import("./dom.js");
-      const reason = await promptBox("Report this account", { placeholder: "What's wrong?", okLabel: "Report" });
-      if (reason == null) return;
-      try { await post("/v1/reports", { kind: "user", targetId: u.id, reason: reason || "other", details: reason }); toast("Thanks — our team will take a look"); } catch (er) { toast(errText(er)); }
-    } } : null,
+    !me ? { label: "Report", icon: "shield", danger: true, onclick: () => import("./u4report.js").then((R) => R.openReport({ kind: "user", targetId: u.id, ownerId: u.id, ownerName: u.displayName || "@" + u.username, preview: "@" + u.username, onBlocked: () => location.reload() })) } : null,   // U4-fixes
   ], { label: "Profile options" })));
   const active = u.showActivity !== false && lastSeen(u.lastActive);
   el.append(h("div", { class: "profile" },
